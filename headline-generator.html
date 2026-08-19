@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Headline Maker</title>
+<style>
+  @font-face {
+    font-family: 'Anton';
+    src: local('Arial Black');
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0d1117;
+    --paper: #f5f3ee;
+    --panel: #ffffff;
+    --line: #d8d4c8;
+    --accent: #1e3fd6;
+    --accent-dim: #2a4be0;
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  body {
+    background: var(--ink);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    color: var(--paper);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .brand .mark {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #ff3b30;
+    border-radius: 50%;
+  }
+
+  .brand h1 {
+    font-family: var(--mono);
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--paper);
+    font-weight: 600;
+  }
+
+  .brand .sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #8a8f98;
+    letter-spacing: 0.08em;
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--paper);
+    padding: 28px 26px;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6b6f76;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .field {
+    margin-bottom: 20px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #444;
+    margin-bottom: 8px;
+  }
+
+  .field textarea,
+  .field input[type="text"] {
+    width: 100%;
+    border: 1.5px solid var(--line);
+    background: var(--panel);
+    padding: 11px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    resize: vertical;
+    transition: border-color 0.15s;
+  }
+
+  .field textarea:focus,
+  .field input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .field textarea { min-height: 84px; line-height: 1.4; }
+
+  .field .hint {
+    font-size: 11px;
+    color: #8a8f98;
+    margin-top: 6px;
+  }
+
+  .row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .swatches {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.1s;
+  }
+  .swatch:hover { transform: scale(1.1); }
+  .swatch.active { border-color: var(--ink); }
+
+  input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 34px;
+    height: 34px;
+    border: 1.5px solid var(--line);
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 3px; }
+  input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .file-btn {
+    display: block;
+    width: 100%;
+    border: 1.5px dashed var(--line);
+    background: var(--panel);
+    padding: 14px;
+    text-align: center;
+    font-size: 12px;
+    color: #6b6f76;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .file-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .file-btn input { display: none; }
+
+  select {
+    width: 100%;
+    border: 1.5px solid var(--line);
+    background: var(--panel);
+    padding: 11px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+  }
+
+  .btn-download {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 15px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.15s;
+    font-family: var(--mono);
+  }
+  .btn-download:hover { background: var(--accent-dim); }
+  .btn-download:active { transform: translateY(1px); }
+
+  .preview-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #1a1d24;
+    background-image:
+      linear-gradient(45deg, #20232b 25%, transparent 25%),
+      linear-gradient(-45deg, #20232b 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #20232b 75%),
+      linear-gradient(-45deg, transparent 75%, #20232b 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    background-color: #14161b;
+    padding: 30px;
+    position: relative;
+  }
+
+  .canvas-shell {
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    max-height: 72vh;
+  }
+
+  .preview-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: #6b7280;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 14px;
+  }
+
+  footer {
+    margin-top: 20px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: #565b64;
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="mark"></span>
+      <div>
+        <h1>Headline Maker</h1>
+      </div>
+    </div>
+    <span class="sub">TEMPLATE GENERATOR — FORMAT BERITA</span>
+  </header>
+
+  <main>
+    <div class="panel">
+      <div class="panel-title">Nama Akun</div>
+      <div class="field">
+        <label>Handle / Nama channel</label>
+        <input type="text" id="accountName" value="MINETROPY" maxlength="30">
+      </div>
+      <div class="field">
+        <label>Logo akun (opsional)</label>
+        <label class="file-btn">
+          Klik untuk unggah logo
+          <input type="file" id="logoUpload" accept="image/*">
+        </label>
+        <div class="hint" id="logoFileName">Belum ada logo — pakai huruf inisial otomatis.</div>
+      </div>
+
+      <div class="panel-title">Judul</div>
+      <div class="field">
+        <label>Teks headline</label>
+        <textarea id="headlineText" maxlength="160">GAME INDIE HORSES DIBLOKIR EPIC GAMES 24 JAM SEBELUM RILIS</textarea>
+        <div class="hint">Otomatis huruf kapital. Gunakan kalimat singkat & padat.</div>
+      </div>
+
+      <div class="panel-title">Warna</div>
+      <div class="field">
+        <label>Warna banner nama akun</label>
+        <div class="color-row">
+          <input type="color" id="bannerColor" value="#1e3fd6">
+          <div class="swatches" id="colorSwatches"></div>
+        </div>
+      </div>
+
+      <div class="panel-title">Latar Belakang</div>
+      <div class="field">
+        <label>Gambar latar (opsional)</label>
+        <label class="file-btn">
+          Klik untuk unggah gambar
+          <input type="file" id="bgUpload" accept="image/*">
+        </label>
+        <div class="hint" id="bgFileName">Belum ada gambar — pakai latar polos.</div>
+      </div>
+      <div class="field">
+        <label>Efek latar</label>
+        <select id="bgEffect">
+          <option value="none">Normal</option>
+          <option value="grayscale" selected>Hitam putih (grayscale)</option>
+          <option value="dark">Gelap (dim)</option>
+        </select>
+      </div>
+
+      <div class="panel-title">Ekspor</div>
+      <div class="field">
+        <label>Format</label>
+        <select id="aspectRatio">
+          <option value="9:16" selected>9:16 — TikTok / Reels</option>
+          <option value="1:1">1:1 — Square</option>
+          <option value="4:5">4:5 — Portrait</option>
+        </select>
+      </div>
+
+      <button class="btn-download" id="downloadBtn">↓ Unduh sebagai PNG</button>
+    </div>
+
+    <div class="preview-panel">
+      <div class="canvas-shell">
+        <canvas id="previewCanvas"></canvas>
+      </div>
+      <div class="preview-meta" id="dimLabel">1080 × 1920 PX</div>
+    </div>
+  </main>
+
+  <footer>DIBUAT UNTUK KONTEN BERITA TIKTOK — SEMUA PROSES BERJALAN DI BROWSER, TIDAK ADA DATA YANG DIUNGGAH</footer>
+</div>
+
+<script>
+const canvas = document.getElementById('previewCanvas');
+const ctx = canvas.getContext('2d');
+
+const state = {
+  account: 'MINETROPY',
+  headline: 'GAME INDIE HORSES DIBLOKIR EPIC GAMES 24 JAM SEBELUM RILIS',
+  bannerColor: '#1e3fd6',
+  bgImage: null,
+  logoImage: null,
+  bgEffect: 'grayscale',
+  ratio: '9:16'
+};
+
+const ratios = {
+  '9:16': [1080, 1920],
+  '1:1': [1080, 1080],
+  '4:5': [1080, 1350]
+};
+
+const swatchColors = ['#1e3fd6', '#e11d2e', '#0f9d58', '#f59e0b', '#111111', '#8b2fd6'];
+const swatchWrap = document.getElementById('colorSwatches');
+swatchColors.forEach(c => {
+  const el = document.createElement('div');
+  el.className = 'swatch';
+  el.style.background = c;
+  if (c === state.bannerColor) el.classList.add('active');
+  el.addEventListener('click', () => {
+    state.bannerColor = c;
+    document.getElementById('bannerColor').value = c;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    draw();
+  });
+  swatchWrap.appendChild(el);
+});
+
+function wrapText(context, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    const metrics = context.measureText(testLine);
+    if (metrics.width > maxWidth && n > 0) {
+      lines.push(line.trim());
+      line = words[n] + ' ';
+    } else {
+      line = testLine;
+    }
+  }
+  lines.push(line.trim());
+  return lines;
+}
+
+function draw() {
+  const [w, h] = ratios[state.ratio];
+  canvas.width = w;
+  canvas.height = h;
+  document.getElementById('dimLabel').textContent = `${w} × ${h} PX`;
+
+  // background
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(0, 0, w, h);
+
+  if (state.bgImage) {
+    ctx.save();
+    if (state.bgEffect === 'grayscale') {
+      ctx.filter = 'grayscale(1) contrast(1.05)';
+    } else if (state.bgEffect === 'dark') {
+      ctx.filter = 'brightness(0.55)';
+    }
+    // cover-fit
+    const img = state.bgImage;
+    const imgRatio = img.width / img.height;
+    const canvasRatio = w / h;
+    let dw, dh, dx, dy;
+    if (imgRatio > canvasRatio) {
+      dh = h; dw = h * imgRatio; dx = (w - dw) / 2; dy = 0;
+    } else {
+      dw = w; dh = w / imgRatio; dx = 0; dy = (h - dh) / 2;
+    }
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
+  } else {
+    // subtle default gradient so it's not flat black
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, '#3a3a3a');
+    grad.addColorStop(1, '#1c1c1c');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  const marginX = w * 0.09;
+  const headlineMarginX = w * 0.05;
+  let cursorY = h * 0.20;
+
+  // ---- account banner ----
+  const bannerPadX = w * 0.028;
+  const bannerPadY = h * 0.014;
+  const bannerFontSize = Math.round(w * 0.052);
+  ctx.font = `900 ${bannerFontSize}px Arial, sans-serif`;
+  const accountText = state.account.toUpperCase();
+
+  // logo mark size
+  const logoSize = bannerFontSize * 1.5;
+  const textWidth = ctx.measureText(accountText).width;
+  const bannerWidth = logoSize + bannerPadX * 3 + textWidth + bannerPadX;
+  const bannerHeight = logoSize + bannerPadY * 2;
+
+  const bannerX = headlineMarginX;
+  const bannerY = cursorY;
+
+  ctx.fillStyle = state.bannerColor;
+  ctx.fillRect(bannerX, bannerY, bannerWidth, bannerHeight);
+
+  // logo chip (white rounded square with logo image or initial)
+  const logoPad = bannerHeight * 0.14;
+  const logoBoxSize = bannerHeight - logoPad * 2;
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, bannerX + logoPad, bannerY + logoPad, logoBoxSize, logoBoxSize, logoBoxSize * 0.18);
+  ctx.fill();
+
+  if (state.logoImage) {
+    ctx.save();
+    roundRect(ctx, bannerX + logoPad, bannerY + logoPad, logoBoxSize, logoBoxSize, logoBoxSize * 0.18);
+    ctx.clip();
+    const img = state.logoImage;
+    const imgRatio = img.width / img.height;
+    let dw, dh, dx, dy;
+    if (imgRatio > 1) {
+      dh = logoBoxSize; dw = logoBoxSize * imgRatio; dx = bannerX + logoPad - (dw - logoBoxSize) / 2; dy = bannerY + logoPad;
+    } else {
+      dw = logoBoxSize; dh = logoBoxSize / imgRatio; dx = bannerX + logoPad; dy = bannerY + logoPad - (dh - logoBoxSize) / 2;
+    }
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = state.bannerColor;
+    ctx.font = `900 ${logoBoxSize * 0.62}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(accountText.charAt(0), bannerX + logoPad + logoBoxSize / 2, bannerY + logoPad + logoBoxSize / 2 + logoBoxSize * 0.03);
+  }
+
+  // account text
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `900 ${bannerFontSize}px Arial, sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(accountText, bannerX + logoPad * 2 + logoBoxSize + bannerPadX, bannerY + bannerHeight / 2 + bannerFontSize * 0.03);
+
+  cursorY = bannerY + bannerHeight;
+
+  // ---- headline white box ----
+  const boxPadX = w * 0.06;
+  const boxPadY = h * 0.018;
+  const boxWidth = w - headlineMarginX * 2;
+  const maxTextWidth = boxWidth - boxPadX * 2;
+  const maxLines = 3;
+
+  // Auto-shrink font size until the headline fits within maxLines
+  let headlineFontSize = Math.round(w * 0.08);
+  const minFontSize = Math.round(w * 0.032);
+  let lines = [];
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+
+  while (headlineFontSize > minFontSize) {
+    ctx.font = `900 ${headlineFontSize}px Arial, sans-serif`;
+    lines = wrapText(ctx, state.headline.toUpperCase(), maxTextWidth);
+    if (lines.length <= maxLines) break;
+    headlineFontSize -= 2;
+  }
+
+  // If still over the limit at minimum size, hard-truncate to maxLines
+  if (lines.length > maxLines) {
+    lines = lines.slice(0, maxLines);
+    let lastLine = lines[maxLines - 1];
+    while (ctx.measureText(lastLine + '…').width > maxTextWidth && lastLine.length > 0) {
+      lastLine = lastLine.slice(0, -1);
+    }
+    lines[maxLines - 1] = lastLine.trim() + '…';
+  }
+
+  const lineHeight = headlineFontSize * 1.08;
+  const boxHeight = boxPadY * 2 + lines.length * lineHeight;
+
+  ctx.fillStyle = '#f2f0eb';
+  ctx.fillRect(headlineMarginX, cursorY, boxWidth, boxHeight);
+
+  // colored accent bar on left of box
+  ctx.fillStyle = state.bannerColor;
+  ctx.fillRect(headlineMarginX, cursorY, w * 0.012, boxHeight);
+
+  ctx.fillStyle = '#111111';
+  ctx.font = `900 ${headlineFontSize}px Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  let ly = cursorY + boxPadY + headlineFontSize * 0.84;
+  lines.forEach(line => {
+    ctx.fillText(line, w / 2, ly);
+    ly += lineHeight;
+  });
+}
+
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.closePath();
+}
+
+// ---- event bindings ----
+document.getElementById('accountName').addEventListener('input', e => {
+  state.account = e.target.value || 'AKUN';
+  draw();
+});
+
+document.getElementById('headlineText').addEventListener('input', e => {
+  state.headline = e.target.value || '...';
+  draw();
+});
+
+document.getElementById('bannerColor').addEventListener('input', e => {
+  state.bannerColor = e.target.value;
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  draw();
+});
+
+document.getElementById('bgEffect').addEventListener('change', e => {
+  state.bgEffect = e.target.value;
+  draw();
+});
+
+document.getElementById('aspectRatio').addEventListener('change', e => {
+  state.ratio = e.target.value;
+  draw();
+});
+
+document.getElementById('logoUpload').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      state.logoImage = img;
+      document.getElementById('logoFileName').textContent = `Terpasang: ${file.name}`;
+      draw();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('bgUpload').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      state.bgImage = img;
+      document.getElementById('bgFileName').textContent = `Terpasang: ${file.name}`;
+      draw();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  const link = document.createElement('a');
+  const safeAccount = state.account.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'headline';
+  link.download = `${safeAccount}-headline.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+draw();
+</script>
+
+</body>
+</html>
