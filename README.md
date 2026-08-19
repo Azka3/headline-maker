@@ -28,8 +28,8 @@ Murni HTML, CSS, dan JavaScript (Canvas API) — tidak ada dependency eksternal,
 ## Menjalankan Secara Lokal
 
 ```bash
-git clone https://github.com/USERNAME/NAMA-REPO.git
-cd NAMA-REPO
+git clone https://github.com/Azka3/headline-maker.git
+cd headline-maker
 ```
 
 Lalu cukup buka file `headline-generator.html` langsung di browser.
