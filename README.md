@@ -32,7 +32,7 @@ git clone https://github.com/Azka3/headline-maker.git
 cd headline-maker
 ```
 
-Lalu cukup buka file `headline-generator.html` langsung di browser.
+Lalu cukup buka file `index.html` langsung di browser.
 
 ## Lisensi
 
