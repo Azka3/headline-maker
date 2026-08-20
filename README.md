@@ -3,6 +3,7 @@
 Generator template headline gaya "breaking news" untuk konten TikTok/Reels — buat judul, nama akun, dan gambar latar, lalu unduh sebagai PNG. Semua proses berjalan langsung di browser, tanpa upload ke server manapun.
 
 ![Screenshot Headline Maker](screenshot.png)
+![Screenshot Headline Maker](screenshot2.png)
 
 ## Fitur
 
