@@ -15,7 +15,7 @@ Generator template headline gaya "breaking news" untuk konten TikTok/Reels — b
 
 ## Cara Pakai
 
-1. Buka `headline-generator.html` di browser (tidak perlu server atau instalasi apapun)
+1. Buka [index.html](index.html) secara lokal, atau langsung akses demo online di **[headline-maker.vercel.app](https://headline-maker.vercel.app/)** (tidak perlu server atau instalasi apapun)
 2. Isi nama akun dan judul headline
 3. (Opsional) unggah logo dan/atau gambar latar belakang
 4. Pilih warna banner dan rasio ekspor sesuai kebutuhan
@@ -32,7 +32,7 @@ git clone https://github.com/Azka3/headline-maker.git
 cd headline-maker
 ```
 
-Lalu cukup buka file `headline-generator.html` langsung di browser.
+Lalu cukup buka file `index.html` langsung di browser.
 
 ## Lisensi
 

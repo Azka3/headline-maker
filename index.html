@@ -5,11 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Headline Maker</title>
 <style>
-  @font-face {
-    font-family: 'Anton';
-    src: local('Arial Black');
-  }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -75,12 +70,44 @@
     letter-spacing: 0.08em;
   }
 
+  .template-tabs {
+    display: flex;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 1px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    background: var(--panel);
+    border: none;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b6f76;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .tab-btn.active {
+    background: var(--ink);
+    color: #fff;
+  }
+
+  .tab-btn:hover:not(.active) {
+    background: #eceae2;
+  }
+
   main {
     display: grid;
     grid-template-columns: 380px 1fr;
     gap: 1px;
     background: var(--line);
     border: 1px solid var(--line);
+    border-top: none;
   }
 
   @media (max-width: 860px) {
@@ -90,6 +117,8 @@
   .panel {
     background: var(--paper);
     padding: 28px 26px;
+    max-height: 82vh;
+    overflow-y: auto;
   }
 
   .panel-title {
@@ -300,38 +329,89 @@
     <span class="sub">TEMPLATE GENERATOR — FORMAT BERITA</span>
   </header>
 
+  <div class="template-tabs">
+    <button class="tab-btn active" id="tabBanner">1 — Banner Berita</button>
+    <button class="tab-btn" id="tabOverlay">2 — Overlay Berita</button>
+  </div>
+
   <main>
     <div class="panel">
-      <div class="panel-title">Nama Akun</div>
-      <div class="field">
-        <label>Handle / Nama channel</label>
-        <input type="text" id="accountName" value="MINETROPY" maxlength="30">
-      </div>
-      <div class="field">
-        <label>Logo akun (opsional)</label>
-        <label class="file-btn">
-          Klik untuk unggah logo
-          <input type="file" id="logoUpload" accept="image/*">
-        </label>
-        <div class="hint" id="logoFileName">Belum ada logo — pakai huruf inisial otomatis.</div>
-      </div>
 
-      <div class="panel-title">Judul</div>
-      <div class="field">
-        <label>Teks headline</label>
-        <textarea id="headlineText" maxlength="160">GAME INDIE HORSES DIBLOKIR EPIC GAMES 24 JAM SEBELUM RILIS</textarea>
-        <div class="hint">Otomatis huruf kapital. Gunakan kalimat singkat & padat.</div>
-      </div>
+      <!-- ============ TEMPLATE 1: BANNER FIELDS ============ -->
+      <div id="fieldsBanner">
+        <div class="panel-title">Nama Akun</div>
+        <div class="field">
+          <label>Handle / Nama channel</label>
+          <input type="text" id="accountName" value="MINETROPY" maxlength="30">
+        </div>
+        <div class="field">
+          <label>Logo akun (opsional)</label>
+          <label class="file-btn">
+            Klik untuk unggah logo
+            <input type="file" id="logoUpload" accept="image/*">
+          </label>
+          <div class="hint" id="logoFileName">Belum ada logo — pakai huruf inisial otomatis.</div>
+        </div>
 
-      <div class="panel-title">Warna</div>
-      <div class="field">
-        <label>Warna banner nama akun</label>
-        <div class="color-row">
-          <input type="color" id="bannerColor" value="#1e3fd6">
-          <div class="swatches" id="colorSwatches"></div>
+        <div class="panel-title">Judul</div>
+        <div class="field">
+          <label>Teks headline</label>
+          <textarea id="headlineText" maxlength="160">GAME INDIE HORSES *DIBLOKIR* EPIC GAMES 24 JAM SEBELUM RILIS</textarea>
+          <div class="hint">Otomatis huruf kapital, maks 3 baris. Kasih tanda bintang di kata yang mau disorot warna banner, contoh: *DIBLOKIR*</div>
+        </div>
+
+        <div class="panel-title">Warna</div>
+        <div class="field">
+          <label>Warna banner nama akun</label>
+          <div class="color-row">
+            <input type="color" id="bannerColor" value="#1e3fd6">
+            <div class="swatches" id="colorSwatches"></div>
+          </div>
         </div>
       </div>
 
+      <!-- ============ TEMPLATE 2: OVERLAY FIELDS ============ -->
+      <div id="fieldsOverlay" style="display:none;">
+        <div class="panel-title">Logo Atas</div>
+        <div class="row2">
+          <div class="field">
+            <label>Bagian 1 (putih)</label>
+            <input type="text" id="logoPart1" value="MINE" maxlength="14">
+          </div>
+          <div class="field">
+            <label>Bagian 2 (aksen)</label>
+            <input type="text" id="logoPart2" value="TROPY" maxlength="14">
+          </div>
+        </div>
+
+        <div class="panel-title">Kategori & Sumber</div>
+        <div class="field">
+          <label>Label kategori (badge)</label>
+          <input type="text" id="badgeText" value="NEWS GAMES" maxlength="24">
+        </div>
+        <div class="field">
+          <label>Sumber berita</label>
+          <input type="text" id="sourceName" value="Thegamer" maxlength="30">
+        </div>
+
+        <div class="panel-title">Judul</div>
+        <div class="field">
+          <label>Teks headline</label>
+          <textarea id="overlayHeadline" maxlength="200">TREN MENJILAT KARTRID *NINTENDO* SWITCH KEMBALI VIRAL GARA-GARA *BUNGA SAKURA*?</textarea>
+          <div class="hint">Kapital otomatis. Kasih tanda bintang di kata yang mau diwarnai aksen, contoh: *NINTENDO*</div>
+        </div>
+
+        <div class="panel-title">Warna</div>
+        <div class="field">
+          <label>Warna aksen</label>
+          <div class="color-row">
+            <input type="color" id="accentColor" value="#ff6a00">
+            <div class="swatches" id="accentSwatches"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SHARED FIELDS ============ -->
       <div class="panel-title">Latar Belakang</div>
       <div class="field">
         <label>Gambar latar (opsional)</label>
@@ -345,8 +425,8 @@
         <label>Efek latar</label>
         <select id="bgEffect">
           <option value="none">Normal</option>
-          <option value="grayscale" selected>Hitam putih (grayscale)</option>
-          <option value="dark">Gelap (dim)</option>
+          <option value="grayscale">Hitam putih (grayscale)</option>
+          <option value="dark" selected>Gelap (dim)</option>
         </select>
       </div>
 
@@ -379,12 +459,25 @@ const canvas = document.getElementById('previewCanvas');
 const ctx = canvas.getContext('2d');
 
 const state = {
+  template: 'banner',
+
+  // banner template
   account: 'MINETROPY',
   headline: 'GAME INDIE HORSES DIBLOKIR EPIC GAMES 24 JAM SEBELUM RILIS',
   bannerColor: '#1e3fd6',
-  bgImage: null,
   logoImage: null,
-  bgEffect: 'grayscale',
+
+  // overlay template
+  logoPart1: 'MINE',
+  logoPart2: 'TROPY',
+  badgeText: 'NEWS GAMES',
+  sourceName: 'Thegamer',
+  overlayHeadline: 'TREN MENJILAT KARTRID *NINTENDO* SWITCH KEMBALI VIRAL GARA-GARA *BUNGA SAKURA*?',
+  accentColor: '#ff6a00',
+
+  // shared
+  bgImage: null,
+  bgEffect: 'dark',
   ratio: '9:16'
 };
 
@@ -394,23 +487,65 @@ const ratios = {
   '4:5': [1080, 1350]
 };
 
-const swatchColors = ['#1e3fd6', '#e11d2e', '#0f9d58', '#f59e0b', '#111111', '#8b2fd6'];
-const swatchWrap = document.getElementById('colorSwatches');
-swatchColors.forEach(c => {
-  const el = document.createElement('div');
-  el.className = 'swatch';
-  el.style.background = c;
-  if (c === state.bannerColor) el.classList.add('active');
-  el.addEventListener('click', () => {
-    state.bannerColor = c;
-    document.getElementById('bannerColor').value = c;
-    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
-    el.classList.add('active');
-    draw();
-  });
-  swatchWrap.appendChild(el);
+// ---- tab switching ----
+const tabBanner = document.getElementById('tabBanner');
+const tabOverlay = document.getElementById('tabOverlay');
+const fieldsBanner = document.getElementById('fieldsBanner');
+const fieldsOverlay = document.getElementById('fieldsOverlay');
+
+tabBanner.addEventListener('click', () => {
+  state.template = 'banner';
+  tabBanner.classList.add('active');
+  tabOverlay.classList.remove('active');
+  fieldsBanner.style.display = 'block';
+  fieldsOverlay.style.display = 'none';
+  draw();
 });
 
+tabOverlay.addEventListener('click', () => {
+  state.template = 'overlay';
+  tabOverlay.classList.add('active');
+  tabBanner.classList.remove('active');
+  fieldsOverlay.style.display = 'block';
+  fieldsBanner.style.display = 'none';
+  draw();
+});
+
+// ---- color swatches ----
+function buildSwatches(containerEl, colors, onPick, inputEl, initial) {
+  colors.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'swatch';
+    el.style.background = c;
+    if (c === initial) el.classList.add('active');
+    el.addEventListener('click', () => {
+      onPick(c);
+      inputEl.value = c;
+      containerEl.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+      el.classList.add('active');
+      draw();
+    });
+    containerEl.appendChild(el);
+  });
+}
+
+buildSwatches(
+  document.getElementById('colorSwatches'),
+  ['#1e3fd6', '#e11d2e', '#0f9d58', '#f59e0b', '#111111', '#8b2fd6'],
+  c => state.bannerColor = c,
+  document.getElementById('bannerColor'),
+  state.bannerColor
+);
+
+buildSwatches(
+  document.getElementById('accentSwatches'),
+  ['#ff6a00', '#e11d2e', '#0f9d58', '#1e3fd6', '#f5c400', '#ff2d87'],
+  c => state.accentColor = c,
+  document.getElementById('accentColor'),
+  state.accentColor
+);
+
+// ---- helpers ----
 function wrapText(context, text, maxWidth) {
   const words = text.split(' ');
   const lines = [];
@@ -429,13 +564,54 @@ function wrapText(context, text, maxWidth) {
   return lines;
 }
 
-function draw() {
-  const [w, h] = ratios[state.ratio];
-  canvas.width = w;
-  canvas.height = h;
-  document.getElementById('dimLabel').textContent = `${w} × ${h} PX`;
+function roundRect(context, x, y, width, height, radius) {
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.arcTo(x + width, y, x + width, y + height, radius);
+  context.arcTo(x + width, y + height, x, y + height, radius);
+  context.arcTo(x, y + height, x, y, radius);
+  context.arcTo(x, y, x + width, y, radius);
+  context.closePath();
+}
 
-  // background
+// Parses "*word*" markup into tokens: { text, accent:boolean }
+function tokenizeHighlight(text) {
+  const parts = text.split(/(\*[^*]+\*)/g).filter(Boolean);
+  const tokens = [];
+  parts.forEach(part => {
+    const isAccent = part.startsWith('*') && part.endsWith('*') && part.length > 1;
+    const clean = isAccent ? part.slice(1, -1) : part;
+    clean.split(' ').filter(w => w.length > 0).forEach(w => {
+      tokens.push({ text: w, accent: isAccent });
+    });
+  });
+  return tokens;
+}
+
+// Wraps colored tokens into lines that fit maxWidth, returns array of line-token-arrays
+function wrapColoredTokens(context, tokens, maxWidth, fontWeight, fontFamily) {
+  const lines = [];
+  let currentLine = [];
+  let currentWidth = 0;
+  const spaceWidth = context.measureText(' ').width;
+
+  tokens.forEach(tok => {
+    const w = context.measureText(tok.text).width;
+    const extra = currentLine.length > 0 ? spaceWidth : 0;
+    if (currentWidth + extra + w > maxWidth && currentLine.length > 0) {
+      lines.push(currentLine);
+      currentLine = [tok];
+      currentWidth = w;
+    } else {
+      currentLine.push(tok);
+      currentWidth += extra + w;
+    }
+  });
+  if (currentLine.length > 0) lines.push(currentLine);
+  return lines;
+}
+
+function drawBackground(w, h) {
   ctx.fillStyle = '#2a2a2a';
   ctx.fillRect(0, 0, w, h);
 
@@ -446,7 +622,6 @@ function draw() {
     } else if (state.bgEffect === 'dark') {
       ctx.filter = 'brightness(0.55)';
     }
-    // cover-fit
     const img = state.bgImage;
     const imgRatio = img.width / img.height;
     const canvasRatio = w / h;
@@ -459,26 +634,27 @@ function draw() {
     ctx.drawImage(img, dx, dy, dw, dh);
     ctx.restore();
   } else {
-    // subtle default gradient so it's not flat black
     const grad = ctx.createLinearGradient(0, 0, w, h);
     grad.addColorStop(0, '#3a3a3a');
     grad.addColorStop(1, '#1c1c1c');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
   }
+}
 
-  const marginX = w * 0.09;
+// ============ TEMPLATE 1: BANNER STYLE ============
+function drawBannerTemplate(w, h) {
+  drawBackground(w, h);
+
   const headlineMarginX = w * 0.05;
   let cursorY = h * 0.20;
 
-  // ---- account banner ----
   const bannerPadX = w * 0.028;
   const bannerPadY = h * 0.014;
   const bannerFontSize = Math.round(w * 0.052);
   ctx.font = `900 ${bannerFontSize}px Arial, sans-serif`;
   const accountText = state.account.toUpperCase();
 
-  // logo mark size
   const logoSize = bannerFontSize * 1.5;
   const textWidth = ctx.measureText(accountText).width;
   const bannerWidth = logoSize + bannerPadX * 3 + textWidth + bannerPadX;
@@ -490,7 +666,6 @@ function draw() {
   ctx.fillStyle = state.bannerColor;
   ctx.fillRect(bannerX, bannerY, bannerWidth, bannerHeight);
 
-  // logo chip (white rounded square with logo image or initial)
   const logoPad = bannerHeight * 0.14;
   const logoBoxSize = bannerHeight - logoPad * 2;
   ctx.fillStyle = '#ffffff';
@@ -519,7 +694,6 @@ function draw() {
     ctx.fillText(accountText.charAt(0), bannerX + logoPad + logoBoxSize / 2, bannerY + logoPad + logoBoxSize / 2 + logoBoxSize * 0.03);
   }
 
-  // account text
   ctx.fillStyle = '#ffffff';
   ctx.font = `900 ${bannerFontSize}px Arial, sans-serif`;
   ctx.textAlign = 'left';
@@ -528,35 +702,40 @@ function draw() {
 
   cursorY = bannerY + bannerHeight;
 
-  // ---- headline white box ----
   const boxPadX = w * 0.06;
   const boxPadY = h * 0.018;
   const boxWidth = w - headlineMarginX * 2;
   const maxTextWidth = boxWidth - boxPadX * 2;
   const maxLines = 3;
 
-  // Auto-shrink font size until the headline fits within maxLines
   let headlineFontSize = Math.round(w * 0.08);
   const minFontSize = Math.round(w * 0.032);
+  const rawTokens = tokenizeHighlight(state.headline.toUpperCase());
   let lines = [];
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
 
   while (headlineFontSize > minFontSize) {
     ctx.font = `900 ${headlineFontSize}px Arial, sans-serif`;
-    lines = wrapText(ctx, state.headline.toUpperCase(), maxTextWidth);
+    lines = wrapColoredTokens(ctx, rawTokens, maxTextWidth);
     if (lines.length <= maxLines) break;
     headlineFontSize -= 2;
   }
 
-  // If still over the limit at minimum size, hard-truncate to maxLines
   if (lines.length > maxLines) {
     lines = lines.slice(0, maxLines);
+    // trim trailing tokens on the last visible line until it fits, then add ellipsis
     let lastLine = lines[maxLines - 1];
-    while (ctx.measureText(lastLine + '…').width > maxTextWidth && lastLine.length > 0) {
+    ctx.font = `900 ${headlineFontSize}px Arial, sans-serif`;
+    const spaceW = ctx.measureText(' ').width;
+    const lineWidth = arr => arr.reduce((acc, t, i) => acc + ctx.measureText(t.text).width + (i > 0 ? spaceW : 0), 0);
+    while (lastLine.length > 0 && lineWidth(lastLine) + ctx.measureText('…').width > maxTextWidth) {
       lastLine = lastLine.slice(0, -1);
     }
-    lines[maxLines - 1] = lastLine.trim() + '…';
+    if (lastLine.length > 0) {
+      lastLine = lastLine.slice(0, -1).concat([{ ...lastLine[lastLine.length - 1], text: lastLine[lastLine.length - 1].text + '…' }]);
+    }
+    lines[maxLines - 1] = lastLine;
   }
 
   const lineHeight = headlineFontSize * 1.08;
@@ -565,32 +744,148 @@ function draw() {
   ctx.fillStyle = '#f2f0eb';
   ctx.fillRect(headlineMarginX, cursorY, boxWidth, boxHeight);
 
-  // colored accent bar on left of box
   ctx.fillStyle = state.bannerColor;
   ctx.fillRect(headlineMarginX, cursorY, w * 0.012, boxHeight);
 
-  ctx.fillStyle = '#111111';
   ctx.font = `900 ${headlineFontSize}px Arial, sans-serif`;
-  ctx.textAlign = 'center';
+  ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
+  const spaceWidth = ctx.measureText(' ').width;
   let ly = cursorY + boxPadY + headlineFontSize * 0.84;
-  lines.forEach(line => {
-    ctx.fillText(line, w / 2, ly);
+  lines.forEach(lineTokens => {
+    const totalWidth = lineTokens.reduce((acc, t, i) => acc + ctx.measureText(t.text).width + (i > 0 ? spaceWidth : 0), 0);
+    let lx = (w - totalWidth) / 2;
+    lineTokens.forEach(tok => {
+      ctx.fillStyle = tok.accent ? state.bannerColor : '#111111';
+      ctx.fillText(tok.text, lx, ly);
+      lx += ctx.measureText(tok.text).width + spaceWidth;
+    });
     ly += lineHeight;
   });
 }
 
-function roundRect(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + width, y, x + width, y + height, radius);
-  ctx.arcTo(x + width, y + height, x, y + height, radius);
-  ctx.arcTo(x, y + height, x, y, radius);
-  ctx.arcTo(x, y, x + width, y, radius);
-  ctx.closePath();
+// ============ TEMPLATE 2: OVERLAY STYLE ============
+function drawOverlayTemplate(w, h) {
+  drawBackground(w, h);
+
+  // dark gradient at bottom for legibility
+  const gradStart = h * 0.42;
+  const grad = ctx.createLinearGradient(0, gradStart, 0, h);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(0.45, 'rgba(0,0,0,0.55)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.88)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, gradStart, w, h - gradStart);
+
+  const marginX = w * 0.055;
+
+  // ---- top center logo ----
+  const logoFontSize = Math.round(w * 0.034);
+  ctx.font = `900 ${logoFontSize}px Arial, sans-serif`;
+  ctx.textBaseline = 'alphabetic';
+  const part1 = (state.logoPart1 || '').toUpperCase();
+  const part2 = (state.logoPart2 || '').toUpperCase();
+  const p1Width = ctx.measureText(part1).width;
+  const p2Width = ctx.measureText(part2).width;
+  const totalLogoWidth = p1Width + p2Width;
+  let logoX = (w - totalLogoWidth) / 2;
+  const logoY = h * 0.065;
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(part1, logoX, logoY);
+  ctx.fillStyle = state.accentColor;
+  ctx.fillText(part2, logoX + p1Width, logoY);
+
+  // ---- bottom content, bottom-up layout ----
+  let cursorY = h * 0.965;
+
+  // headline (drawn bottom-up: measure first)
+  const headlineFontSize = Math.round(w * 0.058);
+  ctx.font = `900 ${headlineFontSize}px Arial, sans-serif`;
+  const maxTextWidth = w - marginX * 2;
+  const tokens = tokenizeHighlight(state.overlayHeadline.toUpperCase());
+  const headlineLines = wrapColoredTokens(ctx, tokens, maxTextWidth);
+  const headlineLineHeight = headlineFontSize * 1.12;
+  const headlineBlockHeight = headlineLines.length * headlineLineHeight;
+
+  // badge
+  const badgeFontSize = Math.round(w * 0.032);
+  ctx.font = `italic 900 ${badgeFontSize}px Arial, sans-serif`;
+  const badgeText = (state.badgeText || '').toUpperCase();
+  const badgePadX = w * 0.022;
+  const badgePadY = h * 0.010;
+  const badgeTextWidth = ctx.measureText(badgeText).width;
+  const badgeHeight = badgeFontSize + badgePadY * 2;
+  const badgeWidth = badgeTextWidth + badgePadX * 2;
+
+  // source line
+  const sourceFontSize = Math.round(w * 0.026);
+  const sourceLineHeight = sourceFontSize * 1.5;
+
+  const gapBadgeHeadline = h * 0.022;
+  const gapSourceBadge = h * 0.018;
+
+  // compute Y positions from bottom up
+  const headlineBottom = cursorY;
+  const headlineTop = headlineBottom - headlineBlockHeight;
+
+  const badgeBottom = headlineTop - gapBadgeHeadline;
+  const badgeTop = badgeBottom - badgeHeight;
+
+  const sourceBottom = badgeTop - gapSourceBadge;
+
+  // ---- draw source line ----
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `700 ${sourceFontSize}px Arial, sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  const sourceLabel = 'Sumber: ';
+  ctx.fillText(sourceLabel, marginX, sourceBottom);
+  const sourceLabelWidth = ctx.measureText(sourceLabel).width;
+  ctx.fillStyle = state.accentColor;
+  ctx.fillText(state.sourceName || '', marginX + sourceLabelWidth, sourceBottom);
+
+  // ---- draw badge ----
+  ctx.fillStyle = state.accentColor;
+  ctx.fillRect(marginX, badgeTop, badgeWidth, badgeHeight);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `italic 900 ${badgeFontSize}px Arial, sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(badgeText, marginX + badgePadX, badgeTop + badgeHeight / 2 + badgeFontSize * 0.03);
+
+  // ---- draw headline (left aligned, mixed colors) ----
+  ctx.font = `900 ${headlineFontSize}px Arial, sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  const spaceWidth = ctx.measureText(' ').width;
+  let hy = headlineTop + headlineFontSize * 0.9;
+  headlineLines.forEach(lineTokens => {
+    let hx = marginX;
+    lineTokens.forEach(tok => {
+      ctx.fillStyle = tok.accent ? state.accentColor : '#ffffff';
+      ctx.fillText(tok.text, hx, hy);
+      hx += ctx.measureText(tok.text).width + spaceWidth;
+    });
+    hy += headlineLineHeight;
+  });
 }
 
-// ---- event bindings ----
+function draw() {
+  const [w, h] = ratios[state.ratio];
+  canvas.width = w;
+  canvas.height = h;
+  document.getElementById('dimLabel').textContent = `${w} × ${h} PX`;
+
+  if (state.template === 'banner') {
+    drawBannerTemplate(w, h);
+  } else {
+    drawOverlayTemplate(w, h);
+  }
+}
+
+// ---- event bindings: banner template ----
 document.getElementById('accountName').addEventListener('input', e => {
   state.account = e.target.value || 'AKUN';
   draw();
@@ -603,17 +898,7 @@ document.getElementById('headlineText').addEventListener('input', e => {
 
 document.getElementById('bannerColor').addEventListener('input', e => {
   state.bannerColor = e.target.value;
-  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
-  draw();
-});
-
-document.getElementById('bgEffect').addEventListener('change', e => {
-  state.bgEffect = e.target.value;
-  draw();
-});
-
-document.getElementById('aspectRatio').addEventListener('change', e => {
-  state.ratio = e.target.value;
+  document.querySelectorAll('#colorSwatches .swatch').forEach(s => s.classList.remove('active'));
   draw();
 });
 
@@ -631,6 +916,49 @@ document.getElementById('logoUpload').addEventListener('change', e => {
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
+});
+
+// ---- event bindings: overlay template ----
+document.getElementById('logoPart1').addEventListener('input', e => {
+  state.logoPart1 = e.target.value;
+  draw();
+});
+
+document.getElementById('logoPart2').addEventListener('input', e => {
+  state.logoPart2 = e.target.value;
+  draw();
+});
+
+document.getElementById('badgeText').addEventListener('input', e => {
+  state.badgeText = e.target.value;
+  draw();
+});
+
+document.getElementById('sourceName').addEventListener('input', e => {
+  state.sourceName = e.target.value;
+  draw();
+});
+
+document.getElementById('overlayHeadline').addEventListener('input', e => {
+  state.overlayHeadline = e.target.value || '...';
+  draw();
+});
+
+document.getElementById('accentColor').addEventListener('input', e => {
+  state.accentColor = e.target.value;
+  document.querySelectorAll('#accentSwatches .swatch').forEach(s => s.classList.remove('active'));
+  draw();
+});
+
+// ---- shared bindings ----
+document.getElementById('bgEffect').addEventListener('change', e => {
+  state.bgEffect = e.target.value;
+  draw();
+});
+
+document.getElementById('aspectRatio').addEventListener('change', e => {
+  state.ratio = e.target.value;
+  draw();
 });
 
 document.getElementById('bgUpload').addEventListener('change', e => {
@@ -651,7 +979,8 @@ document.getElementById('bgUpload').addEventListener('change', e => {
 
 document.getElementById('downloadBtn').addEventListener('click', () => {
   const link = document.createElement('a');
-  const safeAccount = state.account.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'headline';
+  const nameSource = state.template === 'banner' ? state.account : state.sourceName;
+  const safeAccount = (nameSource || 'headline').replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'headline';
   link.download = `${safeAccount}-headline.png`;
   link.href = canvas.toDataURL('image/png');
   link.click();
