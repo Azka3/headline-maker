@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Headline Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@800&family=Pacifico&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -82,10 +85,10 @@
     flex: 1;
     background: var(--panel);
     border: none;
-    padding: 14px 16px;
+    padding: 12px 14px;
     font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #6b6f76;
     cursor: pointer;
@@ -127,7 +130,8 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #6b6f76;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    margin-top: 22px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -141,7 +145,7 @@
   }
 
   .field {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
 
   .field label {
@@ -267,6 +271,23 @@
   .btn-download:hover { background: var(--accent-dim); }
   .btn-download:active { transform: translateY(1px); }
 
+  .btn-secondary {
+    width: 100%;
+    background: var(--panel);
+    color: #444;
+    border: 1.5px solid var(--line);
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-secondary:hover { border-color: #c0392b; color: #c0392b; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+
   .preview-panel {
     display: flex;
     flex-direction: column;
@@ -332,6 +353,7 @@
   <div class="template-tabs">
     <button class="tab-btn active" id="tabBanner">1 — Banner Berita</button>
     <button class="tab-btn" id="tabOverlay">2 — Overlay Berita</button>
+    <button class="tab-btn" id="tabCard">3 — Kartu Foto</button>
   </div>
 
   <main>
@@ -411,23 +433,93 @@
         </div>
       </div>
 
-      <!-- ============ SHARED FIELDS ============ -->
-      <div class="panel-title">Latar Belakang</div>
-      <div class="field">
-        <label>Gambar latar (opsional)</label>
-        <label class="file-btn">
-          Klik untuk unggah gambar
-          <input type="file" id="bgUpload" accept="image/*">
-        </label>
-        <div class="hint" id="bgFileName">Belum ada gambar — pakai latar polos.</div>
+      <!-- ============ TEMPLATE 3: KARTU FOTO FIELDS ============ -->
+      <div id="fieldsCard" style="display:none;">
+        <div class="panel-title">Nama Akun</div>
+        <div class="field">
+          <label>Teks pill akun</label>
+          <input type="text" id="cardLabel" value="MINETROPY" maxlength="24">
+        </div>
+        <div class="field">
+          <label>Gaya font</label>
+          <select id="cardLabelFont">
+            <option value="condensed" selected>Condensed (tegas, seperti contoh)</option>
+            <option value="script">Script (huruf nyambung)</option>
+            <option value="bold">Bold biasa</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Warna pill akun</label>
+          <div class="color-row">
+            <input type="color" id="cardPillColor" value="#0b2a6b">
+            <div class="swatches" id="cardPillSwatches"></div>
+          </div>
+        </div>
+
+        <div class="panel-title">Foto (Latar Penuh)</div>
+        <div class="field">
+          <label>Foto utama</label>
+          <label class="file-btn">
+            Klik untuk unggah foto
+            <input type="file" id="cardPhotoUpload" accept="image/*">
+          </label>
+          <div class="hint" id="cardPhotoFileName">Belum ada foto — pakai latar polos.</div>
+          <div class="hint">Kalau hanya foto yang diunggah, gambar tampil penuh apa adanya.</div>
+        </div>
+
+        <div class="panel-title">Video (Opsional)</div>
+        <div class="field">
+          <label>Video di tengah atas</label>
+          <label class="file-btn">
+            Klik untuk unggah video
+            <input type="file" id="cardVideoUpload" accept="video/*">
+          </label>
+          <div class="hint" id="cardVideoFileName">Tanpa video — hanya foto yang tampil.</div>
+          <div class="hint">Video muncul di tengah atas dengan frame. Hasil unduhan berupa PNG dari frame yang kamu pilih.</div>
+        </div>
+        <div class="field" id="cardVideoControls" style="display:none;">
+          <label>Pilih frame video</label>
+          <input type="range" id="cardVideoSlider" min="0" max="1000" value="0">
+          <div class="hint" id="cardVideoTime">0.0 dtk</div>
+          <button type="button" class="btn-secondary" id="cardVideoRemove">Hapus video</button>
+        </div>
+
+        <div class="panel-title">Judul</div>
+        <div class="field">
+          <label>Teks headline</label>
+          <textarea id="cardHeadline" maxlength="160">NINTENDO GAGAL PATENKAN *MEKANIK TANGKAP MONSTER*</textarea>
+          <div class="hint">Kapital otomatis. Kasih tanda bintang untuk highlight warna, contoh: *MEKANIK*</div>
+        </div>
+
+        <div class="panel-title">Warna</div>
+        <div class="field">
+          <label>Warna highlight &amp; bayangan kartu</label>
+          <div class="color-row">
+            <input type="color" id="cardAccentColor" value="#0d5bd1">
+            <div class="swatches" id="cardAccentSwatches"></div>
+          </div>
+        </div>
       </div>
-      <div class="field">
-        <label>Efek latar</label>
-        <select id="bgEffect">
-          <option value="none">Normal</option>
-          <option value="grayscale">Hitam putih (grayscale)</option>
-          <option value="dark" selected>Gelap (dim)</option>
-        </select>
+
+      <!-- ============ SHARED FIELDS (template 1 & 2 only) ============ -->
+      <div id="fieldsSharedBg">
+        <div class="panel-title">Latar Belakang</div>
+        <div class="field">
+          <label>Gambar latar (opsional)</label>
+          <label class="file-btn">
+            Klik untuk unggah gambar
+            <input type="file" id="bgUpload" accept="image/*">
+          </label>
+          <div class="hint" id="bgFileName">Belum ada gambar — pakai latar polos.</div>
+        </div>
+        <div class="field">
+          <label>Efek latar</label>
+          <select id="bgEffect">
+            <option value="none">Normal</option>
+            <option value="grayscale">Hitam putih (grayscale)</option>
+            <option value="dark" selected>Gelap (dim)</option>
+          </select>
+        </div>
       </div>
 
       <div class="panel-title">Ekspor</div>
@@ -437,6 +529,7 @@
           <option value="9:16" selected>9:16 — TikTok / Reels</option>
           <option value="1:1">1:1 — Square</option>
           <option value="4:5">4:5 — Portrait</option>
+          <option value="16:9">16:9 — Landscape (Foto/Video)</option>
         </select>
       </div>
 
@@ -448,6 +541,7 @@
         <canvas id="previewCanvas"></canvas>
       </div>
       <div class="preview-meta" id="dimLabel">1080 × 1920 PX</div>
+
     </div>
   </main>
 
@@ -475,6 +569,15 @@ const state = {
   overlayHeadline: 'TREN MENJILAT KARTRID *NINTENDO* SWITCH KEMBALI VIRAL GARA-GARA *BUNGA SAKURA*?',
   accentColor: '#ff6a00',
 
+  // card template (foto penuh + kartu headline, video opsional)
+  cardLabel: 'MINETROPY',
+  cardLabelFont: 'condensed',
+  cardPillColor: '#0b2a6b',
+  cardPhoto: null,
+  cardVideoEl: null,
+  cardHeadline: 'NINTENDO GAGAL PATENKAN *MEKANIK TANGKAP MONSTER*',
+  cardAccentColor: '#0d5bd1',
+
   // shared
   bgImage: null,
   bgEffect: 'dark',
@@ -484,31 +587,35 @@ const state = {
 const ratios = {
   '9:16': [1080, 1920],
   '1:1': [1080, 1080],
-  '4:5': [1080, 1350]
+  '4:5': [1080, 1350],
+  '16:9': [1920, 1080]
 };
 
 // ---- tab switching ----
 const tabBanner = document.getElementById('tabBanner');
 const tabOverlay = document.getElementById('tabOverlay');
+const tabCard = document.getElementById('tabCard');
 const fieldsBanner = document.getElementById('fieldsBanner');
 const fieldsOverlay = document.getElementById('fieldsOverlay');
+const fieldsCard = document.getElementById('fieldsCard');
+const fieldsSharedBg = document.getElementById('fieldsSharedBg');
 
-tabBanner.addEventListener('click', () => {
-  state.template = 'banner';
-  tabBanner.classList.add('active');
-  tabOverlay.classList.remove('active');
-  fieldsBanner.style.display = 'block';
-  fieldsOverlay.style.display = 'none';
-  draw();
-});
+const allTabs = [
+  { btn: tabBanner, fields: fieldsBanner, name: 'banner', showsSharedBg: true },
+  { btn: tabOverlay, fields: fieldsOverlay, name: 'overlay', showsSharedBg: true },
+  { btn: tabCard, fields: fieldsCard, name: 'card', showsSharedBg: false }
+];
 
-tabOverlay.addEventListener('click', () => {
-  state.template = 'overlay';
-  tabOverlay.classList.add('active');
-  tabBanner.classList.remove('active');
-  fieldsOverlay.style.display = 'block';
-  fieldsBanner.style.display = 'none';
-  draw();
+allTabs.forEach(tab => {
+  tab.btn.addEventListener('click', () => {
+    state.template = tab.name;
+    allTabs.forEach(t => {
+      t.btn.classList.toggle('active', t === tab);
+      t.fields.style.display = t === tab ? 'block' : 'none';
+    });
+    fieldsSharedBg.style.display = tab.showsSharedBg ? 'block' : 'none';
+    draw();
+  });
 });
 
 // ---- color swatches ----
@@ -543,6 +650,22 @@ buildSwatches(
   c => state.accentColor = c,
   document.getElementById('accentColor'),
   state.accentColor
+);
+
+buildSwatches(
+  document.getElementById('cardPillSwatches'),
+  ['#0b2a6b', '#111111', '#c81e2e', '#0f7a45', '#5b2bb0', '#b45309'],
+  c => state.cardPillColor = c,
+  document.getElementById('cardPillColor'),
+  state.cardPillColor
+);
+
+buildSwatches(
+  document.getElementById('cardAccentSwatches'),
+  ['#0d5bd1', '#e11d2e', '#0f9d58', '#f59e0b', '#8b2fd6', '#ff2d87'],
+  c => state.cardAccentColor = c,
+  document.getElementById('cardAccentColor'),
+  state.cardAccentColor
 );
 
 // ---- helpers ----
@@ -872,6 +995,175 @@ function drawOverlayTemplate(w, h) {
   });
 }
 
+// ============ TEMPLATE 3: KARTU FOTO (foto penuh + kartu headline, video opsional) ============
+function darkenHex(hex, amt) {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r = Math.round(((n >> 16) & 255) * (1 - amt));
+  const g = Math.round(((n >> 8) & 255) * (1 - amt));
+  const b = Math.round((n & 255) * (1 - amt));
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawCardTemplate(w, h) {
+  const base = Math.min(w, h);
+  const isLandscape = w > h;
+  const video = state.cardVideoEl;
+  const hasVideo = !!video && video.readyState >= 2 && video.videoWidth > 0;
+
+  // ---- 1. foto latar (memenuhi seluruh gambar) ----
+  if (state.cardPhoto) {
+    const img = state.cardPhoto;
+    const imgRatio = img.width / img.height;
+    const canvasRatio = w / h;
+    let dw, dh, dx, dy;
+    if (imgRatio > canvasRatio) {
+      dh = h; dw = h * imgRatio; dx = (w - dw) / 2; dy = 0;
+    } else {
+      dw = w; dh = w / imgRatio; dx = 0; dy = (h - dh) / 2;
+    }
+    ctx.drawImage(img, dx, dy, dw, dh);
+  } else {
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, '#1b2a4a');
+    grad.addColorStop(1, '#0a0f1e');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = `800 ${Math.round(base * 0.03)}px Montserrat, Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('UNGGAH FOTO UTAMA', w / 2, h * 0.4);
+  }
+
+  // ---- 2. video di tengah atas dengan frame (hanya kalau ada video) ----
+  if (hasVideo) {
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(0, 0, w, h);
+
+    const vRatio = video.videoWidth / video.videoHeight;
+    const framePad = base * 0.012;
+    const frameRadius = base * 0.03;
+    const plateOff = base * 0.012;
+    const maxInnerW = isLandscape ? w * 0.42 : w * 0.72;
+    const maxInnerH = h * (isLandscape ? 0.46 : 0.30);
+    let innerW = maxInnerW;
+    let innerH = innerW / vRatio;
+    if (innerH > maxInnerH) { innerH = maxInnerH; innerW = innerH * vRatio; }
+    const outerW = innerW + framePad * 2;
+    const outerH = innerH + framePad * 2;
+    const fx = (w - outerW) / 2;
+    const fy = h * (isLandscape ? 0.06 : 0.08);
+
+    ctx.fillStyle = state.cardAccentColor;
+    roundRect(ctx, fx + plateOff, fy + plateOff, outerW, outerH, frameRadius);
+    ctx.fill();
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = base * 0.03;
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, fx, fy, outerW, outerH, frameRadius);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    roundRect(ctx, fx + framePad, fy + framePad, innerW, innerH, Math.max(2, frameRadius - framePad * 0.6));
+    ctx.clip();
+    ctx.drawImage(video, fx + framePad, fy + framePad, innerW, innerH);
+    ctx.restore();
+  }
+
+  // ---- 3. kartu headline putih + bayangan warna aksen ----
+  const cardSideMargin = w * 0.065;
+  const cardWidth = isLandscape ? Math.min(w * 0.62, w - cardSideMargin * 2) : w - cardSideMargin * 2;
+  const cardX = (w - cardWidth) / 2;
+  const cardPadX = base * 0.045;
+  const cardPadY = base * 0.03;
+  const maxTextWidth = cardWidth - cardPadX * 2;
+  const maxLines = 3;
+
+  let fontSize = Math.round(base * 0.062);
+  const minFont = Math.round(base * 0.032);
+  const tokens = tokenizeHighlight(state.cardHeadline.toUpperCase());
+  let lines = [];
+  while (fontSize > minFont) {
+    ctx.font = `800 ${fontSize}px Montserrat, Arial, sans-serif`;
+    lines = wrapColoredTokens(ctx, tokens, maxTextWidth);
+    if (lines.length <= maxLines) break;
+    fontSize -= 2;
+  }
+  ctx.font = `800 ${fontSize}px Montserrat, Arial, sans-serif`;
+  if (lines.length > maxLines) lines = lines.slice(0, maxLines);
+
+  const lineHeight = fontSize * 1.2;
+  const cardHeight = cardPadY * 2 + lines.length * lineHeight;
+  const cardRadius = base * 0.045;
+  const plateOffset = base * 0.018;
+  const cardBottom = h - base * 0.075 - plateOffset;
+  const cardTop = cardBottom - cardHeight;
+
+  ctx.fillStyle = state.cardAccentColor;
+  roundRect(ctx, cardX + plateOffset, cardTop + plateOffset, cardWidth, cardHeight, cardRadius);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, cardX, cardTop, cardWidth, cardHeight, cardRadius);
+  ctx.fill();
+
+  const highlightColor = darkenHex(state.cardAccentColor, 0.12);
+  const spaceW = ctx.measureText(' ').width;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  lines.forEach((lineTokens, i) => {
+    const totalW = lineTokens.reduce((acc, t, k) => acc + ctx.measureText(t.text).width + (k > 0 ? spaceW : 0), 0);
+    let tx = cardX + cardWidth / 2 - totalW / 2;
+    const ty = cardTop + cardPadY + i * lineHeight + lineHeight / 2 + fontSize * 0.35;
+    lineTokens.forEach(tok => {
+      ctx.fillStyle = tok.accent ? highlightColor : '#0f1115';
+      ctx.fillText(tok.text, tx, ty);
+      tx += ctx.measureText(tok.text).width + spaceW;
+    });
+  });
+
+  // ---- 4. pill nama akun di kiri atas kartu ----
+  let pillText = state.cardLabel || '';
+  if (pillText.trim()) {
+    const pillFont = Math.round(base * 0.04);
+    let pillFontCss;
+    let spacing = '0px';
+    if (state.cardLabelFont === 'script') {
+      pillFontCss = `400 ${Math.round(pillFont * 0.95)}px Pacifico, cursive`;
+    } else if (state.cardLabelFont === 'bold') {
+      pillText = pillText.toUpperCase();
+      pillFontCss = `800 ${Math.round(pillFont * 0.82)}px Montserrat, Arial, sans-serif`;
+    } else {
+      pillText = pillText.toUpperCase();
+      pillFontCss = `400 ${Math.round(pillFont * 1.1)}px "Bebas Neue", "Arial Narrow", Arial, sans-serif`;
+      spacing = `${Math.max(1, Math.round(base * 0.0015))}px`;
+    }
+    ctx.font = pillFontCss;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = spacing;
+    const pm = ctx.measureText(pillText);
+    const pillPadX = base * 0.024;
+    const pillH = base * 0.066;
+    const pillW = pm.width + pillPadX * 2;
+    const pillX = cardX + base * 0.006;
+    const pillY = cardTop - pillH - base * 0.010;
+
+    ctx.fillStyle = state.cardPillColor;
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH * 0.32);
+    ctx.fill();
+
+    const asc = pm.actualBoundingBoxAscent || pillFont * 0.7;
+    const desc = pm.actualBoundingBoxDescent || 0;
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(pillText, pillX + pillPadX, pillY + pillH / 2 + (asc - desc) / 2);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  }
+}
+
 function draw() {
   const [w, h] = ratios[state.ratio];
   canvas.width = w;
@@ -880,8 +1172,10 @@ function draw() {
 
   if (state.template === 'banner') {
     drawBannerTemplate(w, h);
-  } else {
+  } else if (state.template === 'overlay') {
     drawOverlayTemplate(w, h);
+  } else {
+    drawCardTemplate(w, h);
   }
 }
 
@@ -950,6 +1244,114 @@ document.getElementById('accentColor').addEventListener('input', e => {
   draw();
 });
 
+// ---- event bindings: template 3 (kartu foto) ----
+document.getElementById('cardLabel').addEventListener('input', e => {
+  state.cardLabel = e.target.value;
+  draw();
+});
+
+document.getElementById('cardLabelFont').addEventListener('change', e => {
+  state.cardLabelFont = e.target.value;
+  draw();
+});
+
+document.getElementById('cardPillColor').addEventListener('input', e => {
+  state.cardPillColor = e.target.value;
+  document.querySelectorAll('#cardPillSwatches .swatch').forEach(s => s.classList.remove('active'));
+  draw();
+});
+
+document.getElementById('cardHeadline').addEventListener('input', e => {
+  state.cardHeadline = e.target.value || '...';
+  draw();
+});
+
+document.getElementById('cardAccentColor').addEventListener('input', e => {
+  state.cardAccentColor = e.target.value;
+  document.querySelectorAll('#cardAccentSwatches .swatch').forEach(s => s.classList.remove('active'));
+  draw();
+});
+
+document.getElementById('cardPhotoUpload').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      state.cardPhoto = img;
+      document.getElementById('cardPhotoFileName').textContent = `Terpasang: ${file.name}`;
+      draw();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+// video: kept as a hidden <video>; the chosen frame is drawn into the framed window
+const cardVideoControls = document.getElementById('cardVideoControls');
+const cardVideoSlider = document.getElementById('cardVideoSlider');
+const cardVideoTime = document.getElementById('cardVideoTime');
+const cardVideoFileName = document.getElementById('cardVideoFileName');
+
+function updateCardVideoTime() {
+  const v = state.cardVideoEl;
+  if (!v) return;
+  cardVideoTime.textContent = `${v.currentTime.toFixed(1)} / ${(v.duration || 0).toFixed(1)} dtk`;
+}
+
+function seekCardVideo(t) {
+  const v = state.cardVideoEl;
+  if (!v) return;
+  v.currentTime = Math.max(0, Math.min(t, v.duration || t));
+}
+
+document.getElementById('cardVideoUpload').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (state.cardVideoEl) URL.revokeObjectURL(state.cardVideoEl.src);
+
+  cardVideoFileName.textContent = `Memproses video: ${file.name}...`;
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.src = URL.createObjectURL(file);
+
+  video.addEventListener('loadeddata', () => {
+    state.cardVideoEl = video;
+    cardVideoSlider.value = 0;
+    cardVideoControls.style.display = 'block';
+    cardVideoFileName.textContent = `Terpasang: ${file.name}`;
+    draw();
+    seekCardVideo(Math.min(0.3, (video.duration || 1) / 2));
+  });
+
+  video.addEventListener('seeked', () => {
+    updateCardVideoTime();
+    draw();
+  });
+
+  video.addEventListener('error', () => {
+    cardVideoFileName.textContent = 'Video tidak bisa dibaca. Coba format MP4 atau WebM.';
+  });
+});
+
+cardVideoSlider.addEventListener('input', e => {
+  const v = state.cardVideoEl;
+  if (!v || !v.duration) return;
+  seekCardVideo((e.target.value / 1000) * v.duration);
+});
+
+document.getElementById('cardVideoRemove').addEventListener('click', () => {
+  if (state.cardVideoEl) URL.revokeObjectURL(state.cardVideoEl.src);
+  state.cardVideoEl = null;
+  cardVideoControls.style.display = 'none';
+  document.getElementById('cardVideoUpload').value = '';
+  cardVideoFileName.textContent = 'Tanpa video — hanya foto yang tampil.';
+  draw();
+});
+
 // ---- shared bindings ----
 document.getElementById('bgEffect').addEventListener('change', e => {
   state.bgEffect = e.target.value;
@@ -979,14 +1381,24 @@ document.getElementById('bgUpload').addEventListener('change', e => {
 
 document.getElementById('downloadBtn').addEventListener('click', () => {
   const link = document.createElement('a');
-  const nameSource = state.template === 'banner' ? state.account : state.sourceName;
+  let nameSource = state.account;
+  if (state.template === 'overlay') nameSource = state.sourceName;
+  if (state.template === 'card') nameSource = state.cardLabel;
   const safeAccount = (nameSource || 'headline').replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'headline';
   link.download = `${safeAccount}-headline.png`;
   link.href = canvas.toDataURL('image/png');
   link.click();
 });
 
-draw();
+if (document.fonts && document.fonts.load) {
+  Promise.all([
+    document.fonts.load('400 40px "Pacifico"'),
+    document.fonts.load('400 40px "Bebas Neue"'),
+    document.fonts.load('800 40px "Montserrat"')
+  ]).then(draw).catch(draw);
+} else {
+  draw();
+}
 </script>
 
 </body>
