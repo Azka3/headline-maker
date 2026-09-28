@@ -286,6 +286,23 @@
     transition: border-color 0.15s, color 0.15s;
   }
   .btn-secondary:hover { border-color: #c0392b; color: #c0392b; }
+
+  .seg { display: flex; gap: 6px; margin-bottom: 4px; }
+  .seg button {
+    flex: 1;
+    background: var(--panel);
+    color: #444;
+    border: 1.5px solid var(--line);
+    padding: 9px 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .seg button:hover { border-color: var(--accent); }
+  .seg button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
   input[type="range"] { width: 100%; accent-color: var(--accent); }
 
   .preview-panel {
@@ -475,12 +492,21 @@
             <input type="file" id="cardVideoUpload" accept="video/*">
           </label>
           <div class="hint" id="cardVideoFileName">Tanpa video — hanya foto yang tampil.</div>
-          <div class="hint">Video muncul di tengah atas dengan frame. Hasil unduhan berupa PNG dari frame yang kamu pilih.</div>
+          <div class="hint">Video muncul di tengah atas dengan frame. Kalau video dipasang, tombol unduh otomatis menghasilkan video (durasi penuh + suara). Tanpa video, hasilnya PNG.</div>
         </div>
         <div class="field" id="cardVideoControls" style="display:none;">
+          <label>Ukuran video di kartu</label>
+          <div class="seg" id="cardVideoSizeSeg">
+            <button type="button" data-size="small">Kecil</button>
+            <button type="button" data-size="medium" class="active">Sedang</button>
+            <button type="button" data-size="large">Besar</button>
+            <button type="button" data-size="xl">Jumbo</button>
+          </div>
+          <div class="hint" style="margin-bottom:14px;">Ukuran otomatis menyesuaikan supaya tidak menabrak kartu headline.</div>
           <label>Pilih frame video</label>
           <input type="range" id="cardVideoSlider" min="0" max="1000" value="0">
           <div class="hint" id="cardVideoTime">0.0 dtk</div>
+          <button type="button" class="btn-secondary" id="cardVideoPlay" style="margin-top:0;margin-bottom:10px;">▶ Putar preview</button>
           <button type="button" class="btn-secondary" id="cardVideoRemove">Hapus video</button>
         </div>
 
@@ -533,7 +559,10 @@
         </select>
       </div>
 
+      <div class="hint" id="exportInfo">Mode: foto saja → unduh PNG.</div>
+
       <button class="btn-download" id="downloadBtn">↓ Unduh sebagai PNG</button>
+      <button type="button" class="btn-secondary" id="downloadPngBtn" style="display:none;">Unduh frame ini sebagai PNG</button>
     </div>
 
     <div class="preview-panel">
@@ -575,6 +604,7 @@ const state = {
   cardPillColor: '#0b2a6b',
   cardPhoto: null,
   cardVideoEl: null,
+  cardVideoSize: 'medium',
   cardHeadline: 'NINTENDO GAGAL PATENKAN *MEKANIK TANGKAP MONSTER*',
   cardAccentColor: '#0d5bd1',
 
@@ -1004,6 +1034,14 @@ function darkenHex(hex, amt) {
   return `rgb(${r},${g},${b})`;
 }
 
+// preset ukuran video: lebar & tinggi maksimum (pecahan dari canvas), P = portrait/square, L = landscape
+const VIDEO_SIZES = {
+  small:  { wP: 0.52, hP: 0.21, wL: 0.30, hL: 0.32 },
+  medium: { wP: 0.72, hP: 0.30, wL: 0.42, hL: 0.46 },
+  large:  { wP: 0.90, hP: 0.42, wL: 0.56, hL: 0.60 },
+  xl:     { wP: 0.94, hP: 0.60, wL: 0.70, hL: 0.80 }
+};
+
 function drawCardTemplate(w, h) {
   const base = Math.min(w, h);
   const isLandscape = w > h;
@@ -1035,45 +1073,7 @@ function drawCardTemplate(w, h) {
     ctx.fillText('UNGGAH FOTO UTAMA', w / 2, h * 0.4);
   }
 
-  // ---- 2. video di tengah atas dengan frame (hanya kalau ada video) ----
-  if (hasVideo) {
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.fillRect(0, 0, w, h);
-
-    const vRatio = video.videoWidth / video.videoHeight;
-    const framePad = base * 0.012;
-    const frameRadius = base * 0.03;
-    const plateOff = base * 0.012;
-    const maxInnerW = isLandscape ? w * 0.42 : w * 0.72;
-    const maxInnerH = h * (isLandscape ? 0.46 : 0.30);
-    let innerW = maxInnerW;
-    let innerH = innerW / vRatio;
-    if (innerH > maxInnerH) { innerH = maxInnerH; innerW = innerH * vRatio; }
-    const outerW = innerW + framePad * 2;
-    const outerH = innerH + framePad * 2;
-    const fx = (w - outerW) / 2;
-    const fy = h * (isLandscape ? 0.06 : 0.08);
-
-    ctx.fillStyle = state.cardAccentColor;
-    roundRect(ctx, fx + plateOff, fy + plateOff, outerW, outerH, frameRadius);
-    ctx.fill();
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.45)';
-    ctx.shadowBlur = base * 0.03;
-    ctx.fillStyle = '#ffffff';
-    roundRect(ctx, fx, fy, outerW, outerH, frameRadius);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    roundRect(ctx, fx + framePad, fy + framePad, innerW, innerH, Math.max(2, frameRadius - framePad * 0.6));
-    ctx.clip();
-    ctx.drawImage(video, fx + framePad, fy + framePad, innerW, innerH);
-    ctx.restore();
-  }
-
-  // ---- 3. kartu headline putih + bayangan warna aksen ----
+  // ---- layout kartu headline (dihitung dulu supaya video tahu batas bawahnya) ----
   const cardSideMargin = w * 0.065;
   const cardWidth = isLandscape ? Math.min(w * 0.62, w - cardSideMargin * 2) : w - cardSideMargin * 2;
   const cardX = (w - cardWidth) / 2;
@@ -1102,6 +1102,50 @@ function drawCardTemplate(w, h) {
   const cardBottom = h - base * 0.075 - plateOffset;
   const cardTop = cardBottom - cardHeight;
 
+
+  // ---- 2. video di tengah atas dengan frame (hanya kalau ada video) ----
+  if (hasVideo) {
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(0, 0, w, h);
+
+    const vRatio = video.videoWidth / video.videoHeight;
+    const framePad = base * 0.012;
+    const frameRadius = base * 0.03;
+    const plateOff = base * 0.012;
+    const sz = VIDEO_SIZES[state.cardVideoSize] || VIDEO_SIZES.medium;
+    const fy = h * (isLandscape ? 0.06 : 0.08);
+    const hasPill = !!(state.cardLabel || '').trim();
+    const stackTop = hasPill ? cardTop - base * 0.066 - base * 0.010 : cardTop;
+    const availH = stackTop - fy - base * 0.03 - framePad * 2 - plateOff;
+    const maxInnerW = w * (isLandscape ? sz.wL : sz.wP);
+    const maxInnerH = Math.max(base * 0.12, Math.min(availH, h * (isLandscape ? sz.hL : sz.hP)));
+    let innerW = maxInnerW;
+    let innerH = innerW / vRatio;
+    if (innerH > maxInnerH) { innerH = maxInnerH; innerW = innerH * vRatio; }
+    const outerW = innerW + framePad * 2;
+    const outerH = innerH + framePad * 2;
+    const fx = (w - outerW) / 2;
+
+    ctx.fillStyle = state.cardAccentColor;
+    roundRect(ctx, fx + plateOff, fy + plateOff, outerW, outerH, frameRadius);
+    ctx.fill();
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = base * 0.03;
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, fx, fy, outerW, outerH, frameRadius);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    roundRect(ctx, fx + framePad, fy + framePad, innerW, innerH, Math.max(2, frameRadius - framePad * 0.6));
+    ctx.clip();
+    ctx.drawImage(video, fx + framePad, fy + framePad, innerW, innerH);
+    ctx.restore();
+  }
+
+  // ---- 3. kartu headline putih + bayangan warna aksen ----
   ctx.fillStyle = state.cardAccentColor;
   roundRect(ctx, cardX + plateOffset, cardTop + plateOffset, cardWidth, cardHeight, cardRadius);
   ctx.fill();
@@ -1166,8 +1210,8 @@ function drawCardTemplate(w, h) {
 
 function draw() {
   const [w, h] = ratios[state.ratio];
-  canvas.width = w;
-  canvas.height = h;
+  if (canvas.width !== w) canvas.width = w;
+  if (canvas.height !== h) canvas.height = h;
   document.getElementById('dimLabel').textContent = `${w} × ${h} PX`;
 
   if (state.template === 'banner') {
@@ -1337,6 +1381,14 @@ document.getElementById('cardVideoUpload').addEventListener('change', e => {
   });
 });
 
+document.querySelectorAll('#cardVideoSizeSeg button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.cardVideoSize = btn.dataset.size;
+    document.querySelectorAll('#cardVideoSizeSeg button').forEach(b => b.classList.toggle('active', b === btn));
+    draw();
+  });
+});
+
 cardVideoSlider.addEventListener('input', e => {
   const v = state.cardVideoEl;
   if (!v || !v.duration) return;
@@ -1344,7 +1396,7 @@ cardVideoSlider.addEventListener('input', e => {
 });
 
 document.getElementById('cardVideoRemove').addEventListener('click', () => {
-  if (state.cardVideoEl) URL.revokeObjectURL(state.cardVideoEl.src);
+  if (state.cardVideoEl) { state.cardVideoEl.pause(); URL.revokeObjectURL(state.cardVideoEl.src); }
   state.cardVideoEl = null;
   cardVideoControls.style.display = 'none';
   document.getElementById('cardVideoUpload').value = '';
@@ -1379,16 +1431,243 @@ document.getElementById('bgUpload').addEventListener('change', e => {
   reader.readAsDataURL(file);
 });
 
-document.getElementById('downloadBtn').addEventListener('click', () => {
-  const link = document.createElement('a');
+// ============ PREVIEW PLAY + EKSPOR (PNG / VIDEO) ============
+const downloadBtn = document.getElementById('downloadBtn');
+const downloadPngBtn = document.getElementById('downloadPngBtn');
+const exportInfo = document.getElementById('exportInfo');
+const playBtn = document.getElementById('cardVideoPlay');
+let isRecording = false;
+let isPreviewPlaying = false;
+let previewRaf = null;
+let stopRecordingFn = null;
+
+function safeName() {
   let nameSource = state.account;
   if (state.template === 'overlay') nameSource = state.sourceName;
   if (state.template === 'card') nameSource = state.cardLabel;
-  const safeAccount = (nameSource || 'headline').replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'headline';
-  link.download = `${safeAccount}-headline.png`;
+  return (nameSource || 'headline').replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'headline';
+}
+
+function videoModeActive() {
+  return state.template === 'card' && !!state.cardVideoEl;
+}
+
+// ---- audio graph: satu per elemen video (preview ke speaker + rekaman ke file) ----
+let audioCtx = null;
+function getAudioGraph(video) {
+  if (video._graph) return video._graph;
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const src = audioCtx.createMediaElementSource(video);
+  const gain = audioCtx.createGain();
+  const rec = audioCtx.createMediaStreamDestination();
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.connect(rec);
+  video._graph = { gain, rec };
+  return video._graph;
+}
+
+function refreshExportUI() {
+  if (isRecording) return;
+  const v = videoModeActive();
+  downloadPngBtn.style.display = v ? 'block' : 'none';
+  downloadBtn.textContent = v ? '↓ Unduh sebagai Video' : '↓ Unduh sebagai PNG';
+  exportInfo.textContent = v
+    ? 'Mode video: hasil berupa video sesuai durasi asli + audio. Direkam real-time, jangan pindah tab.'
+    : 'Mode foto: hasil berupa PNG.';
+  playBtn.disabled = false;
+}
+
+// ---- preview play / pause ----
+function previewLoop() {
+  const v = state.cardVideoEl;
+  if (!v || !isPreviewPlaying) return;
+  draw();
+  if (v.duration) cardVideoSlider.value = Math.round((v.currentTime / v.duration) * 1000);
+  updateCardVideoTime();
+  previewRaf = requestAnimationFrame(previewLoop);
+}
+
+async function startPreview() {
+  const v = state.cardVideoEl;
+  if (!v || isRecording) return;
+  try {
+    const g = getAudioGraph(v);
+    g.gain.gain.value = 1;
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    v.muted = false;
+  } catch (err) { console.warn('Audio preview tidak aktif:', err); v.muted = true; }
+  if (v.ended || v.currentTime >= (v.duration || 0) - 0.05) v.currentTime = 0;
+  try { await v.play(); } catch (err) { alert('Video tidak bisa diputar.'); return; }
+  isPreviewPlaying = true;
+  playBtn.textContent = '❚❚ Jeda preview';
+  previewLoop();
+}
+
+function stopPreview() {
+  const v = state.cardVideoEl;
+  isPreviewPlaying = false;
+  cancelAnimationFrame(previewRaf);
+  if (v) v.pause();
+  playBtn.textContent = '▶ Putar preview';
+  draw();
+}
+
+playBtn.addEventListener('click', () => {
+  if (isPreviewPlaying) stopPreview(); else startPreview();
+});
+
+// ---- PNG ----
+function downloadPng() {
+  const link = document.createElement('a');
+  link.download = `${safeName()}-headline.png`;
   link.href = canvas.toDataURL('image/png');
   link.click();
+}
+
+// ---- Video ----
+function pickVideoMime() {
+  if (typeof MediaRecorder === 'undefined') return null;
+  const candidates = [
+    'video/mp4;codecs=avc1.640028,mp4a.40.2',
+    'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+    'video/mp4',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm'
+  ];
+  return candidates.find(m => MediaRecorder.isTypeSupported(m)) || null;
+}
+
+async function downloadVideo() {
+  const video = state.cardVideoEl;
+  if (!video) return;
+  const mime = pickVideoMime();
+  if (!mime || !canvas.captureStream) {
+    alert('Browser ini belum mendukung perekaman video. Coba Chrome atau Firefox versi terbaru.');
+    return;
+  }
+  if (isPreviewPlaying) stopPreview();
+
+  isRecording = true;
+  playBtn.disabled = true;
+  const savedTime = video.currentTime;
+
+  const stream = canvas.captureStream(30);
+  let graph = null;
+  try {
+    graph = getAudioGraph(video);
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    video.muted = false;
+    graph.gain.gain.value = 0; // senyap di speaker selama merekam, tetap masuk ke file
+    graph.rec.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+  } catch (err) {
+    console.warn('Audio tidak bisa direkam, lanjut tanpa suara:', err);
+  }
+
+  let wakeLock = null;
+  try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+
+  const pixels = canvas.width * canvas.height;
+  const videoBps = Math.min(16000000, Math.max(6000000, Math.round(pixels * 6)));
+  const chunks = [];
+  const rec = new MediaRecorder(stream, {
+    mimeType: mime,
+    videoBitsPerSecond: videoBps,
+    audioBitsPerSecond: 192000
+  });
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+
+  let raf = null;
+  let cancelled = false;
+
+  const onEnded = () => {
+    draw();
+    setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, 300);
+  };
+
+  const finish = () => {
+    cancelAnimationFrame(raf);
+    video.pause();
+    video.removeEventListener('ended', onEnded);
+    if (graph) graph.gain.gain.value = 1;
+    if (wakeLock) { try { wakeLock.release(); } catch (e) {} }
+    isRecording = false;
+    stopRecordingFn = null;
+    video.currentTime = savedTime;
+    refreshExportUI();
+  };
+
+  rec.onstop = () => {
+    finish();
+    if (cancelled || !chunks.length) return;
+    const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+    const blob = new Blob(chunks, { type: mime.split(';')[0] });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `${safeName()}-headline.${ext}`;
+    link.href = url;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
+  };
+
+  stopRecordingFn = () => { cancelled = true; if (rec.state !== 'inactive') rec.stop(); };
+
+  // mulai dari detik 0
+  if (video.currentTime > 0.01) {
+    await new Promise(res => {
+      const done = () => { video.removeEventListener('seeked', done); res(); };
+      video.addEventListener('seeked', done);
+      video.currentTime = 0;
+    });
+  }
+  draw();
+
+  video.addEventListener('ended', onEnded);
+  rec.start(500);
+  try {
+    await video.play();
+  } catch (err) {
+    cancelled = true;
+    rec.stop();
+    alert('Video tidak bisa diputar untuk direkam. Coba tekan tombol lagi.');
+    return;
+  }
+
+  const total = video.duration || 0;
+  const tick = () => {
+    draw();
+    const pct = total ? Math.min(100, Math.round((video.currentTime / total) * 100)) : 0;
+    downloadBtn.textContent = `● Merekam ${pct}% — ketuk untuk batal`;
+    if (total) cardVideoSlider.value = Math.round((video.currentTime / total) * 1000);
+    updateCardVideoTime();
+    raf = requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+downloadBtn.addEventListener('click', () => {
+  if (isRecording) { if (stopRecordingFn) stopRecordingFn(); return; }
+  if (videoModeActive()) downloadVideo(); else downloadPng();
 });
+downloadPngBtn.addEventListener('click', downloadPng);
+
+// hentikan preview kalau video dihapus / ganti tab
+document.getElementById('cardVideoRemove').addEventListener('click', () => {
+  isPreviewPlaying = false;
+  cancelAnimationFrame(previewRaf);
+  playBtn.textContent = '▶ Putar preview';
+  refreshExportUI();
+});
+allTabs.forEach(tab => tab.btn.addEventListener('click', () => {
+  if (isPreviewPlaying) stopPreview();
+  refreshExportUI();
+}));
+document.getElementById('cardVideoUpload').addEventListener('change', () => {
+  if (isPreviewPlaying) stopPreview();
+  setTimeout(refreshExportUI, 400);
+});
+refreshExportUI();
 
 if (document.fonts && document.fonts.load) {
   Promise.all([
