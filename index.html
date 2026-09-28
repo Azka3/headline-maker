@@ -498,8 +498,8 @@
           <label>Ukuran video di kartu</label>
           <div class="seg" id="cardVideoSizeSeg">
             <button type="button" data-size="small">Kecil</button>
-            <button type="button" data-size="medium" class="active">Sedang</button>
-            <button type="button" data-size="large">Besar</button>
+            <button type="button" data-size="medium">Sedang</button>
+            <button type="button" data-size="large" class="active">Besar</button>
             <button type="button" data-size="xl">Jumbo</button>
           </div>
           <div class="hint" style="margin-bottom:14px;">Ukuran otomatis menyesuaikan supaya tidak menabrak kartu headline.</div>
@@ -604,7 +604,7 @@ const state = {
   cardPillColor: '#0b2a6b',
   cardPhoto: null,
   cardVideoEl: null,
-  cardVideoSize: 'medium',
+  cardVideoSize: 'large',
   cardHeadline: 'NINTENDO GAGAL PATENKAN *MEKANIK TANGKAP MONSTER*',
   cardAccentColor: '#0d5bd1',
 
@@ -1036,10 +1036,10 @@ function darkenHex(hex, amt) {
 
 // preset ukuran video: lebar & tinggi maksimum (pecahan dari canvas), P = portrait/square, L = landscape
 const VIDEO_SIZES = {
-  small:  { wP: 0.52, hP: 0.21, wL: 0.30, hL: 0.32 },
-  medium: { wP: 0.72, hP: 0.30, wL: 0.42, hL: 0.46 },
-  large:  { wP: 0.90, hP: 0.42, wL: 0.56, hL: 0.60 },
-  xl:     { wP: 0.94, hP: 0.60, wL: 0.70, hL: 0.80 }
+  small:  { wP: 0.60, hP: 0.26, wL: 0.36, hL: 0.38 },
+  medium: { wP: 0.82, hP: 0.36, wL: 0.50, hL: 0.54 },
+  large:  { wP: 0.94, hP: 0.48, wL: 0.62, hL: 0.68 },
+  xl:     { wP: 0.97, hP: 0.64, wL: 0.76, hL: 0.86 }
 };
 
 function drawCardTemplate(w, h) {
@@ -1505,7 +1505,7 @@ function refreshExportUI() {
   downloadPngBtn.style.display = v ? 'block' : 'none';
   downloadBtn.textContent = v ? '↓ Unduh sebagai Video' : '↓ Unduh sebagai PNG';
   exportInfo.textContent = v
-    ? 'Mode video: hasil berupa video sesuai durasi asli + audio. Direkam real-time, jangan pindah tab.'
+    ? 'Mode video: hasil akhir berupa MP4 (60fps) + audio, sesuai durasi asli. Direkam real-time, jangan pindah tab. Di Chrome/Android ada proses konversi otomatis ke MP4 setelah rekaman selesai — sekali unduh pertama agak lebih lama karena memuat mesin konversi (~25MB).'
     : 'Mode foto: hasil berupa PNG.';
   playBtn.disabled = false;
 }
@@ -1557,6 +1557,63 @@ function downloadPng() {
   link.click();
 }
 
+function triggerFileDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = url;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
+}
+
+// ---- Konversi WebM -> MP4 asli di browser (FFmpeg.wasm) ----
+// Chrome/Firefox/Android tidak bisa merekam MP4 asli lewat MediaRecorder (cuma Safari yang bisa),
+// jadi hasil rekaman selalu WebM di browser tsb. Supaya file akhir tetap MP4 di semua browser,
+// WebM hasil rekaman dikonversi ke MP4 asli di sini sebelum diunduh.
+let ffmpegInstance = null;
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Gagal memuat pustaka konversi dari ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+async function getFfmpeg() {
+  if (ffmpegInstance) return ffmpegInstance;
+  await loadScriptOnce('https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js');
+  const { createFFmpeg } = window.FFmpeg;
+  const instance = createFFmpeg({
+    log: false,
+    corePath: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js'
+  });
+  await instance.load();
+  ffmpegInstance = instance;
+  return instance;
+}
+
+async function transcodeWebmToMp4(webmBlob, onProgress) {
+  const { fetchFile } = window.FFmpeg;
+  const ffmpeg = await getFfmpeg();
+  ffmpeg.setProgress(({ ratio }) => {
+    if (onProgress && ratio >= 0 && ratio <= 1) onProgress(Math.round(ratio * 100));
+  });
+  ffmpeg.FS('writeFile', 'input.webm', await fetchFile(webmBlob));
+  await ffmpeg.run(
+    '-i', 'input.webm',
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p',
+    '-c:a', 'aac', '-movflags', '+faststart',
+    'output.mp4'
+  );
+  const data = ffmpeg.FS('readFile', 'output.mp4');
+  try { ffmpeg.FS('unlink', 'input.webm'); ffmpeg.FS('unlink', 'output.mp4'); } catch (e) {}
+  return new Blob([data.buffer], { type: 'video/mp4' });
+}
+
 // ---- Video ----
 function pickVideoMime() {
   if (typeof MediaRecorder === 'undefined') return null;
@@ -1585,7 +1642,7 @@ async function downloadVideo() {
   playBtn.disabled = true;
   const savedTime = video.currentTime;
 
-  const stream = canvas.captureStream(30);
+  const stream = canvas.captureStream(60);
   let graph = null;
   try {
     graph = getAudioGraph(video);
@@ -1630,17 +1687,35 @@ async function downloadVideo() {
     refreshExportUI();
   };
 
-  rec.onstop = () => {
+  rec.onstop = async () => {
     finish();
     if (cancelled || !chunks.length) return;
-    const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-    const blob = new Blob(chunks, { type: mime.split(';')[0] });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = `${safeName()}-headline.${ext}`;
-    link.href = url;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 15000);
+    const nativeExt = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+    const rawBlob = new Blob(chunks, { type: mime.split(';')[0] });
+
+    if (nativeExt === 'mp4') {
+      triggerFileDownload(rawBlob, `${safeName()}-headline.mp4`);
+      return;
+    }
+
+    // Browser ini merekam WebM (bukan MP4 asli) — konversi otomatis ke MP4 di sini
+    isRecording = true;
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = 'Menyiapkan konversi MP4 (sekali saja)...';
+    try {
+      const mp4Blob = await transcodeWebmToMp4(rawBlob, (pct) => {
+        downloadBtn.textContent = `Mengonversi ke MP4 ${pct}%`;
+      });
+      triggerFileDownload(mp4Blob, `${safeName()}-headline.mp4`);
+    } catch (err) {
+      console.warn('Konversi MP4 gagal, unduh sebagai WebM sebagai cadangan:', err);
+      triggerFileDownload(rawBlob, `${safeName()}-headline.webm`);
+      alert('Konversi ke MP4 gagal (kemungkinan koneksi internet bermasalah saat memuat mesin konversi). Video diunduh sebagai WebM — tetap bisa diputar dan diunggah ke TikTok.');
+    } finally {
+      isRecording = false;
+      downloadBtn.disabled = false;
+      refreshExportUI();
+    }
   };
 
   stopRecordingFn = () => { cancelled = true; if (rec.state !== 'inactive') rec.stop(); };
