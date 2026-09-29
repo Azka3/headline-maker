@@ -1494,19 +1494,15 @@ function videoModeActive() {
   return state.template === 'card' && !!state.cardVideoEl;
 }
 
-// ---- audio graph: satu per elemen video (preview ke speaker + rekaman ke file) ----
-let audioCtx = null;
-function getAudioGraph(video) {
-  if (video._graph) return video._graph;
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const src = audioCtx.createMediaElementSource(video);
-  const gain = audioCtx.createGain();
-  const rec = audioCtx.createMediaStreamDestination();
-  src.connect(gain);
-  gain.connect(audioCtx.destination);
-  src.connect(rec);
-  video._graph = { gain, rec };
-  return video._graph;
+// Catatan: sengaja TIDAK memakai Web Audio API (AudioContext/MediaElementSource) untuk audio.
+// Merutekan audio video lewat WebAudio ternyata sering menyebabkan video/audio tersendat di Linux
+// (PipeWire/ALSA resampling di background thread bentrok dengan decode video). Sebagai gantinya,
+// audio diambil langsung dari captureStream()/mozCaptureStream() milik elemen video itu sendiri,
+// jauh lebih ringan dan tidak mengganggu decode.
+function getVideoStreamTracks(video) {
+  const stream = (video.captureStream && video.captureStream())
+    || (video.mozCaptureStream && video.mozCaptureStream());
+  return stream ? stream.getAudioTracks() : [];
 }
 
 const videoFpsField = document.getElementById('videoFpsField');
@@ -1553,12 +1549,7 @@ function previewLoop() {
 async function startPreview() {
   const v = state.cardVideoEl;
   if (!v || isRecording) return;
-  try {
-    const g = getAudioGraph(v);
-    g.gain.gain.value = 1;
-    if (audioCtx.state === 'suspended') await audioCtx.resume();
-    v.muted = false;
-  } catch (err) { console.warn('Audio preview tidak aktif:', err); v.muted = true; }
+  v.muted = false;
   if (v.ended || v.currentTime >= (v.duration || 0) - 0.05) v.currentTime = 0;
   try { await v.play(); } catch (err) { alert('Video tidak bisa diputar.'); return; }
   isPreviewPlaying = true;
@@ -1604,10 +1595,17 @@ let ffmpegInstance = null;
 
 function loadScriptOnce(src) {
   return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const existing = document.querySelector(`script[data-src="${src}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === '1') { resolve(); return; }
+      existing.addEventListener('load', resolve);
+      existing.addEventListener('error', () => reject(new Error('Gagal memuat pustaka konversi dari ' + src)));
+      return;
+    }
     const s = document.createElement('script');
     s.src = src;
-    s.onload = resolve;
+    s.dataset.src = src;
+    s.onload = () => { s.dataset.loaded = '1'; resolve(); };
     s.onerror = () => reject(new Error('Gagal memuat pustaka konversi dari ' + src));
     document.head.appendChild(s);
   });
@@ -1615,13 +1613,37 @@ function loadScriptOnce(src) {
 
 async function getFfmpeg() {
   if (ffmpegInstance) return ffmpegInstance;
-  await loadScriptOnce('https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js');
+  const sources = [
+    'https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js',
+    'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js'
+  ];
+  let lastErr = null;
+  for (const src of sources) {
+    try {
+      await loadScriptOnce(src);
+      if (window.FFmpeg && window.FFmpeg.createFFmpeg) { lastErr = null; break; }
+      lastErr = new Error('Skrip termuat tapi window.FFmpeg tidak tersedia (kemungkinan diblokir ad-blocker/ekstensi privasi).');
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  if (lastErr) throw lastErr;
   const { createFFmpeg } = window.FFmpeg;
-  const instance = createFFmpeg({
-    log: false,
-    corePath: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js'
-  });
-  await instance.load();
+  const corePaths = [
+    'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
+    'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js'
+  ];
+  let instance = null;
+  let loadErr = null;
+  for (const corePath of corePaths) {
+    try {
+      instance = createFFmpeg({ log: false, corePath });
+      await instance.load();
+      loadErr = null;
+      break;
+    } catch (err) { loadErr = err; instance = null; }
+  }
+  if (loadErr) throw loadErr;
   ffmpegInstance = instance;
   return instance;
 }
@@ -1682,13 +1704,9 @@ async function downloadVideo() {
   const syncRecCanvas = () => recCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, ew, eh);
 
   const stream = recCanvas.captureStream(fps);
-  let graph = null;
   try {
-    graph = getAudioGraph(video);
-    if (audioCtx.state === 'suspended') await audioCtx.resume();
-    video.muted = false;
-    graph.gain.gain.value = 0; // senyap di speaker selama merekam, tetap masuk ke file
-    graph.rec.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+    getVideoStreamTracks(video).forEach(t => stream.addTrack(t));
+    video.muted = true; // matikan output speaker langsung; captureStream tetap membawa audionya ke file
   } catch (err) {
     console.warn('Audio tidak bisa direkam, lanjut tanpa suara:', err);
   }
@@ -1719,7 +1737,7 @@ async function downloadVideo() {
     cancelAnimationFrame(raf);
     video.pause();
     video.removeEventListener('ended', onEnded);
-    if (graph) graph.gain.gain.value = 1;
+    video.muted = false;
     if (wakeLock) { try { wakeLock.release(); } catch (e) {} }
     isRecording = false;
     stopRecordingFn = null;
@@ -1751,7 +1769,7 @@ async function downloadVideo() {
       console.error('Konversi MP4 gagal:', err);
       triggerFileDownload(rawBlob, `${safeName()}-headline.webm`);
       const reason = (err && err.message) ? err.message : 'penyebab tidak diketahui';
-      alert(`Konversi ke MP4 gagal (${reason}). Ini biasanya karena keterbatasan memori di HP saat memproses video, bukan soal jaringan. Video sudah diunduh sebagai WebM — tetap bisa diputar, tapi kalau mau upload ke TikTok/upload yang butuh format MP4, buka file WebM ini di CapCut/VLC lalu export ulang sebagai MP4.`);
+      alert(`Konversi ke MP4 gagal (${reason}). Biasanya karena pustaka konversi (ffmpeg.wasm, ~25MB) diblokir ad-blocker/ekstensi privasi, atau gagal dimuat karena jaringan/CDN. Video sudah diunduh sebagai WebM — tetap bisa diputar, tapi kalau perlu MP4 untuk TikTok/IG, buka file WebM ini di CapCut/VLC/ffmpeg lalu export ulang sebagai MP4.`);
     } finally {
       isRecording = false;
       downloadBtn.disabled = false;
@@ -1769,6 +1787,25 @@ async function downloadVideo() {
       video.currentTime = 0;
     });
   }
+
+  // "pemanasan" decoder: mainkan sebentar sebelum rekaman resmi dimulai.
+  // Tersendat di awal biasanya karena decoder video baru mulai bekerja saat itu juga —
+  // dengan memutar & menjeda dulu di luar rekaman, momen tersendat itu terjadi
+  // SEBELUM rec.start(), bukan di dalam hasil videonya.
+  downloadBtn.textContent = '● Menyiapkan…';
+  try {
+    await video.play();
+    await new Promise(res => setTimeout(res, 220));
+    video.pause();
+  } catch (err) { /* abaikan, lanjut seperti biasa */ }
+  video.currentTime = 0;
+  await new Promise(res => {
+    const done = () => { video.removeEventListener('seeked', done); res(); };
+    video.addEventListener('seeked', done);
+  });
+  // fallback kalau event 'seeked' tidak terpicu (beberapa browser)
+  await new Promise(res => setTimeout(res, 30));
+
   draw();
   syncRecCanvas();
 
