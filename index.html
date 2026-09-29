@@ -561,6 +561,15 @@
 
       <div class="hint" id="exportInfo">Mode: foto saja → unduh PNG.</div>
 
+      <div class="field" id="videoFpsField" style="display:none;">
+        <label>Frame rate video</label>
+        <div class="seg" id="videoFpsSeg">
+          <button type="button" data-fps="30" class="active">30 FPS</button>
+          <button type="button" data-fps="60">60 FPS</button>
+        </div>
+        <div class="hint">Resolusi ekspor otomatis dipadatkan ke 720p (bukan resolusi kanvas di atas) supaya lancar dan file tidak kebesaran.</div>
+      </div>
+
       <button class="btn-download" id="downloadBtn">↓ Unduh sebagai PNG</button>
       <button type="button" class="btn-secondary" id="downloadPngBtn" style="display:none;">Unduh frame ini sebagai PNG</button>
     </div>
@@ -605,6 +614,7 @@ const state = {
   cardPhoto: null,
   cardVideoEl: null,
   cardVideoSize: 'large',
+  videoFps: 30,
   cardHeadline: 'NINTENDO GAGAL PATENKAN *MEKANIK TANGKAP MONSTER*',
   cardAccentColor: '#0d5bd1',
 
@@ -1499,13 +1509,33 @@ function getAudioGraph(video) {
   return video._graph;
 }
 
+const videoFpsField = document.getElementById('videoFpsField');
+
+// 720p: sisi panjang dipatok 1280, sisi pendek dipatok 720 — hanya memperkecil, tidak pernah memperbesar
+function computeExportSize(w, h) {
+  const longEdge = Math.max(w, h);
+  const shortEdge = Math.min(w, h);
+  const scale = Math.min(1280 / longEdge, 720 / shortEdge, 1);
+  const ew = Math.max(2, Math.round((w * scale) / 2) * 2);
+  const eh = Math.max(2, Math.round((h * scale) / 2) * 2);
+  return { ew, eh };
+}
+
+document.querySelectorAll('#videoFpsSeg button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.videoFps = parseInt(btn.dataset.fps, 10);
+    document.querySelectorAll('#videoFpsSeg button').forEach(b => b.classList.toggle('active', b === btn));
+  });
+});
+
 function refreshExportUI() {
   if (isRecording) return;
   const v = videoModeActive();
   downloadPngBtn.style.display = v ? 'block' : 'none';
+  videoFpsField.style.display = v ? 'block' : 'none';
   downloadBtn.textContent = v ? '↓ Unduh sebagai Video' : '↓ Unduh sebagai PNG';
   exportInfo.textContent = v
-    ? 'Mode video: hasil akhir berupa MP4 (60fps) + audio, sesuai durasi asli. Direkam real-time, jangan pindah tab. Di Chrome/Android ada proses konversi otomatis ke MP4 setelah rekaman selesai — sekali unduh pertama agak lebih lama karena memuat mesin konversi (~25MB).'
+    ? 'Mode video: hasil akhir berupa MP4 + audio (720p), sesuai durasi asli. Direkam real-time, jangan pindah tab. Di Chrome/Android ada proses konversi otomatis ke MP4 setelah rekaman selesai — sekali unduh pertama agak lebih lama karena memuat mesin konversi (~25MB), dan bisa gagal di HP dengan RAM terbatas.'
     : 'Mode foto: hasil berupa PNG.';
   playBtn.disabled = false;
 }
@@ -1605,7 +1635,7 @@ async function transcodeWebmToMp4(webmBlob, onProgress) {
   ffmpeg.FS('writeFile', 'input.webm', await fetchFile(webmBlob));
   await ffmpeg.run(
     '-i', 'input.webm',
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p',
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-movflags', '+faststart',
     'output.mp4'
   );
@@ -1642,7 +1672,16 @@ async function downloadVideo() {
   playBtn.disabled = true;
   const savedTime = video.currentTime;
 
-  const stream = canvas.captureStream(60);
+  // rekam dari canvas terpisah beresolusi 720p (bukan canvas preview full-res) -> lebih ringan, tidak macet
+  const fps = state.videoFps === 60 ? 60 : 30;
+  const { ew, eh } = computeExportSize(canvas.width, canvas.height);
+  let recCanvas = document.createElement('canvas');
+  recCanvas.width = ew;
+  recCanvas.height = eh;
+  const recCtx = recCanvas.getContext('2d');
+  const syncRecCanvas = () => recCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, ew, eh);
+
+  const stream = recCanvas.captureStream(fps);
   let graph = null;
   try {
     graph = getAudioGraph(video);
@@ -1657,8 +1696,8 @@ async function downloadVideo() {
   let wakeLock = null;
   try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
 
-  const pixels = canvas.width * canvas.height;
-  const videoBps = Math.min(16000000, Math.max(6000000, Math.round(pixels * 6)));
+  const pixels = ew * eh;
+  const videoBps = Math.min(8000000, Math.max(3000000, Math.round(pixels * (fps === 60 ? 9 : 6))));
   const chunks = [];
   const rec = new MediaRecorder(stream, {
     mimeType: mime,
@@ -1672,6 +1711,7 @@ async function downloadVideo() {
 
   const onEnded = () => {
     drawFast();
+    syncRecCanvas();
     setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, 300);
   };
 
@@ -1708,9 +1748,10 @@ async function downloadVideo() {
       });
       triggerFileDownload(mp4Blob, `${safeName()}-headline.mp4`);
     } catch (err) {
-      console.warn('Konversi MP4 gagal, unduh sebagai WebM sebagai cadangan:', err);
+      console.error('Konversi MP4 gagal:', err);
       triggerFileDownload(rawBlob, `${safeName()}-headline.webm`);
-      alert('Konversi ke MP4 gagal (kemungkinan koneksi internet bermasalah saat memuat mesin konversi). Video diunduh sebagai WebM — tetap bisa diputar dan diunggah ke TikTok.');
+      const reason = (err && err.message) ? err.message : 'penyebab tidak diketahui';
+      alert(`Konversi ke MP4 gagal (${reason}). Ini biasanya karena keterbatasan memori di HP saat memproses video, bukan soal jaringan. Video sudah diunduh sebagai WebM — tetap bisa diputar, tapi kalau mau upload ke TikTok/upload yang butuh format MP4, buka file WebM ini di CapCut/VLC lalu export ulang sebagai MP4.`);
     } finally {
       isRecording = false;
       downloadBtn.disabled = false;
@@ -1729,6 +1770,7 @@ async function downloadVideo() {
     });
   }
   draw();
+  syncRecCanvas();
 
   video.addEventListener('ended', onEnded);
   rec.start(500);
@@ -1744,8 +1786,9 @@ async function downloadVideo() {
   const total = video.duration || 0;
   const tick = () => {
     drawFast();
+    syncRecCanvas();
     const pct = total ? Math.min(100, Math.round((video.currentTime / total) * 100)) : 0;
-    downloadBtn.textContent = `● Merekam ${pct}% — ketuk untuk batal`;
+    downloadBtn.textContent = `● Merekam ${pct}% (${ew}×${eh}@${fps}fps) — ketuk untuk batal`;
     if (total) cardVideoSlider.value = Math.round((video.currentTime / total) * 1000);
     updateCardVideoTime();
     raf = requestAnimationFrame(tick);
